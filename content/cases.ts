@@ -1,4 +1,3 @@
-import { TODO } from '@/lib/todo'
 import type { CaseStudy, Testimonial, Faq } from './types'
 
 /**
@@ -539,19 +538,22 @@ export const CASE_STUDIES: CaseStudy[] = [
  * standing as the studies themselves in CASE_STUDIES above. They are the two that render.
  *
  * THREE MORE HAVE SINCE BEEN NAMED and now publish alongside them: Ranjeev Chandra at
- * Tracks 2 Curtains, Suraj Kunar at 4th Generation Resources and Vinod Sukhija at Decor
+ * Tracks 2 Curtains, Suraj Kumar at 4th Generation Resources and Vinod Sukhija at Decor
  * Masters. Their quotes were supplied earlier as fill-in-the-blank drafts and the client
- * has since sent the people. Ranjeev Chandra's job title is still open — the card renders
- * without one rather than waiting, since a name is what makes a testimonial attributable
- * and a title is decoration on top of it.
+ * has since sent the people.
  *
  * ALL SIX NOW PUBLISH. The fourth draft, Proffer IT Consultancy's, is Sushant Acharya's —
  * the client sent that name against "profit.in", which matches no company here, and
  * confirmed the two are the same before it was written down.
  *
- * TWO FIELDS REMAIN OPEN AND NEITHER BLOCKS A CARD: Ranjeev Chandra's job title, and the
- * figure removed from Sushant Acharya's quote. `npm run check:todos` counts the first; the
- * second is recorded verbatim at that entry.
+ * EVERY NAME AND EVERY TITLE IS NOW SUPPLIED, so this file holds no placeholders at all —
+ * which is why it no longer imports TODO. Ajit Kumar and Rohit Dass carried "Client" as a
+ * stand-in title until the client sent their real ones, and Ranjeev Chandra's was the last
+ * outstanding field on any card.
+ *
+ * ONE THING IS STILL OPEN AND IT DOES NOT BLOCK A CARD: the figure removed from Sushant
+ * Acharya's quote, recorded verbatim at that entry. It is not a TODO() because it is not a
+ * missing value — it is a sentence that reads correctly without it.
  *
  * A FIFTH NAME ARRIVED WITH NO QUOTE TO ATTACH IT TO — "Apricus premium solar — Vipin
  * Sachdeva". There is no Apricus testimonial in this file, and a name is not a testimonial:
@@ -596,10 +598,11 @@ export const TESTIMONIALS: Testimonial[] = [
     quote:
       'Zefract gave us a complete roadmap to address the issues with our organic ranking, and the team is working through it. It has been great working with them.',
     author: 'Ajit Kumar',
-    /* The source names the person and the company and gives no job title. Left as the
-       company rather than guessing at one — <Testimonials> renders "{role}, {company}",
-       so inventing a title here would put a fabricated seniority beside a real name. */
-    role: 'Client',
+    /* His actual title, supplied by the client. It read "Client" until then — a
+       placeholder standing in for a job title, because the case study names the person
+       and the company and gives no role, and inventing a seniority beside a real name
+       is the one thing this file will not do. */
+    role: 'Owner',
     company: 'Seair Exim Solutions',
     /* HIS OWN PHOTOGRAPH, supplied by the client — which is what makes this field
        usable at all. It stood empty for a long time and the note here explained why:
@@ -619,9 +622,9 @@ export const TESTIMONIALS: Testimonial[] = [
     quote:
       'Over the past year, we’ve seen a clear improvement in our online performance. The website is attracting more relevant visitors, especially through product and country-specific pages. We’re also getting more qualified leads at a lower cost.',
     author: 'Rohit Dass',
-    /* The source names the person and the company and gives no job title, exactly as
-       Seair's does. Left as the company rather than inventing a seniority. */
-    role: 'Client',
+    /* Supplied by the client, replacing the same "Client" placeholder Ajit Kumar's
+       carried and for the same reason — see the note there. */
+    role: 'Associate',
     company: 'Eximpedia',
     /* Supplied square already, so nothing was cropped — resized and converted only. */
     avatar: PORTRAITS.rohitDass,
@@ -663,26 +666,25 @@ export const TESTIMONIALS: Testimonial[] = [
     quote:
       'Before working with Zefract, our website barely surfaced when hospitals searched for cubicle tracks or curtain systems. Now we’re getting genuine enquiries from procurement and facility teams, and the site finally reflects the quality of what we actually manufacture. What stood out was that they understood healthcare buyers — not just keywords.',
     author: 'Ranjeev Chandra',
-    /* STILL OPEN, and the only thing on this card that is. The draft gives
-       "[Sales/Marketing Head]", which is two job titles with a slash between them
-       rather than one title anyone holds. Left unresolved rather than picked: a role
-       sits directly under a person's name, and choosing which half of it is his is
-       the same kind of invention as choosing the name would have been.
-       The card publishes without it — <Testimonials> drops the role and its comma
-       when it is unresolved, so this reads "Ranjeev Chandra / Tracks 2 Curtains"
-       until the title arrives. */
-    role: TODO('job title of Ranjeev Chandra at Tracks 2 Curtains'),
+    /* SUPPLIED, closing the last placeholder on these cards. It was held open rather
+       than guessed at: the draft offered "[Sales/Marketing Head]", which is two job
+       titles with a slash between them rather than one title anyone holds, and picking
+       a half would have been the same kind of invention as picking the name.
+       The client sent it as "Pwner", one key from "Owner" — and unlike a surname, which
+       is held at whatever spelling arrives, that is not a word in any job title, so it
+       is written as the title it plainly is. Say so if it was meant literally. */
+    role: 'Owner',
     company: 'Tracks 2 Curtains',
   },
   {
     quote:
       'Almost all our business used to come through references — we’d never really invested in digital. Zefract gave us a proper online presence and started bringing in enquiries for facility and security contracts we’d never have reached otherwise. Honestly, what I valued most was how transparent they were about what would and wouldn’t work for a manpower company.',
-    /* TRANSCRIBED EXACTLY AS SUPPLIED, INCLUDING THE SURNAME. "Kunar" is one letter
-       from "Kumar", which is common enough that the eye corrects it automatically —
-       and correcting someone's name on their behalf is not a typo fix, it is
-       publishing a different person. Worth one confirmation before launch; changed
-       only if the client says so. */
-    author: 'Suraj Kunar',
+    /* "Kunar" in the client's original message, corrected to "Kumar" once they
+       confirmed it. Held at the supplied spelling until then rather than fixed on
+       sight: one letter from a common surname is exactly the kind of thing the eye
+       corrects automatically, and correcting someone's name on their behalf is not a
+       typo fix — it is publishing a different person. */
+    author: 'Suraj Kumar',
     role: 'Director',
     company: '4th Generation Resources',
   },

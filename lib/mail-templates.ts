@@ -194,9 +194,14 @@ export function notificationEmail(
     ['Name', submission.name],
     ['Email', submission.email],
     /* Directly under the email, because the two are the same question — how to answer
-       this person — and the row order is what someone triaging scans. "Not given" rather
-       than an omitted row: an absent row reads as a rendering fault, where the words say
-       the field was offered and left blank, which is itself worth knowing. */
+       this person — and the row order is what someone triaging scans.
+
+       THE "Not given" FALLBACK SHOULD NO LONGER FIRE, and it is kept anyway. The field
+       became required, so the route refuses a submission without a number and this string
+       can only appear if something upstream changes back or a message is rendered from an
+       older record. That is exactly when a fallback earns its place: a row reading "Phone:"
+       with nothing after it looks like a broken template, where the words say plainly that
+       there is no number to ring. */
     ['Phone', submission.phone || 'Not given'],
     ['Company', submission.company || 'Not given'],
     ['Budget', submission.budget || 'Not given'],

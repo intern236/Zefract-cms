@@ -4,7 +4,6 @@ import { Carousel } from '@/components/ui/carousel'
 import { Rating } from '@/components/ui/rating'
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
 import { StubValue } from '@/components/ui/stub-value'
-import { authorInitials } from '@/lib/author-display'
 import { getTestimonials } from '@/lib/content'
 import { isTodo, resolved } from '@/lib/todo'
 import { cn } from '@/lib/utils'
@@ -49,6 +48,7 @@ import { cn } from '@/lib/utils'
 /** What the carousel shows across at its widest — see `--per` on .carousel-viewport. Past
  *  this many testimonials there is something to slide; at or below it, there is not. */
 const CAROUSEL_FROM = 4
+
 export async function Testimonials() {
   /**
    * A TESTIMONIAL WITHOUT A NAMED PERSON NEVER REACHES A PUBLIC PAGE.
@@ -78,13 +78,25 @@ export async function Testimonials() {
          extra element is needed and the bar follows the corner radius. */
       <figure className="flex h-full flex-col rounded-card border border-line border-t-[3px] border-t-brand bg-surface p-7 shadow-[0_20px_44px_-32px_rgba(8,20,34,0.3)]">
         <figcaption className="flex items-start gap-4">
-          {/* A CIRCLE EITHER WAY, at the client's request, where the photograph was a 14px
-              rounded square. The square came from the layout reference and echoed the
-              module shape of the Zefract mark, which reads well for a flat graphic and
-              less well for a face — a circle crops to the head and puts nothing in the
-              corners. It also matches the portrait beside the featured case study's quote,
-              which has always been round, so the same person is the same shape on both
-              surfaces. */}
+          {/* A CIRCLE, at the client's request, where this was a 14px rounded square. The
+              square came from the layout reference and echoed the module shape of the
+              Zefract mark, which reads well for a flat graphic and less well for a face —
+              a circle crops to the head and puts nothing in the corners. It also matches
+              the portrait beside the featured case study's quote, which has always been
+              round, so the same person is the same shape on both surfaces.
+
+              NOTHING AT ALL WHERE THERE IS NO PHOTOGRAPH, at the client's request, having
+              briefly rendered an initials monogram there. The monogram was added because
+              a card with no avatar starts its name flush against the card's edge while a
+              card with one is indented by the picture, so the row carries two different
+              left margins — that is still true and is now the accepted look. The client
+              has seen both and prefers the empty state, which is a reasonable call: an
+              initials disc is still a placeholder, and this project has spent its time
+              removing those rather than inventing new ones.
+
+              <FeaturedCase> keeps ITS monogram, and that is not an inconsistency. There
+              the circle is the only thing beside the quote, so an empty one would leave a
+              hole in a two-column layout; here the card simply closes up. */}
           {t.avatar ? (
             <Image
               src={t.avatar}
@@ -93,33 +105,7 @@ export async function Testimonials() {
               height={56}
               className="size-14 shrink-0 rounded-full object-cover"
             />
-          ) : (
-            /* INITIALS WHERE THERE IS NO PHOTOGRAPH, rather than nothing at all.
-               Four of the six clients have not sent one, and their cards opened flush
-               against the card's edge while the two that have a picture were indented by
-               it — so the row of cards had two different left margins and read as though
-               something had failed to load on four of them. Initials hold the same circle
-               without asserting a likeness, which is the whole reason the placeholder
-               stock faces were removed in the first place.
-
-               THROUGH `authorInitials`, NOT A LOCAL COPY. The rule — first letters of the
-               first two words, uppercased, "?" if there is nothing — already exists in
-               lib/author-display.ts and already serves <AuthorAvatar>. A third hand-rolled
-               `split/slice/map/join` is a third chance for one of them to disagree about a
-               two-word surname.
-
-               38% of the circle for the type, the same ratio <AuthorAvatar> uses, so a
-               monogram is weighted identically wherever it appears.
-
-               aria-hidden because the name it abbreviates is the very next element:
-               announcing "R C" before "Ranjeev Chandra" is noise. */
-            <span
-              aria-hidden="true"
-              className="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[21px] font-bold tracking-[-0.01em] text-brand-strong"
-            >
-              {authorInitials(t.author)}
-            </span>
-          )}
+          ) : null}
           <span className="min-w-0">
             {/* Through <StubValue>, which prints the name when there is one and the
                 dashed "needs …" chip when there is not. This only ever fires in

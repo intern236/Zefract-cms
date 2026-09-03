@@ -209,8 +209,8 @@ export const HERO_PROOF: {
  * HALE+CO — none of them customers of this business, and three of them (CloudScale, Veloce,
  * DataLink) the very firms whose placeholder case studies had already been deleted for
  * being fabricated. The strip named as clients three companies the site had decided it
- * could not claim. That is now six businesses that exist, each linked to its own website so
- * a reader can check.
+ * could not claim. That is now seven businesses that exist, each linked to its own website
+ * so a reader can check.
  *
  * THE LOGOS WERE TAKEN FROM EACH COMPANY'S OWN SITE, NOT SUPPLIED BY THEM. That distinction
  * matters and is not a technical one:
@@ -285,6 +285,18 @@ export const CLIENT_LOGOS = [
     href: 'https://www.4thgenerationresources.com',
     logo: '/images/clients/4th-generation.webp',
     width: 342,
+    height: 96,
+  },
+  {
+    /* The seventh, and the one that needed no intervention: the mark is published in
+       full colour on a transparent ground, so it went from their site into the strip
+       with nothing done to it but the resize and the format change every entry gets.
+       The wordmark reads "APRICUS" alone; the name here is the company's, which is what
+       the link is announced as. */
+    name: 'Apricus Premium Solar',
+    href: 'https://apricuspremiumsolar.com',
+    logo: '/images/clients/apricus.webp',
+    width: 436,
     height: 96,
   },
 ] as const

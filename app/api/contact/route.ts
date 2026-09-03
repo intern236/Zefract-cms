@@ -101,9 +101,11 @@ export async function POST(request: Request) {
    * the function means the two can never disagree about what a valid number is — the
    * failure mode that would otherwise be silent, and the reason BUDGETS is shared too.
    *
-   * OPTIONAL, SO AN EMPTY FIELD IS NOT AN ERROR. Only a number someone actually typed is
-   * judged; the form's own copy promises that a name, an email and a message are all we
-   * need, and a required phone would quietly break that promise on the same screen.
+   * REQUIRED, at the client's request, where it was optional. The check simply stopped
+   * being conditional — `validatePhone` already answers "Enter a phone number." for an
+   * empty string, so there is no separate missing-field branch and no second message to
+   * keep in step. The form's own copy under the submit button was updated in the same
+   * change, since it is the only place that names the required set.
    *
    * WHAT IS STORED IS E.164, NOT WHAT WAS TYPED — `+919311441557`, never "093114 41557" or
    * "(0)93114-41557". The database holds one shape, so a number is dialable from the
@@ -113,7 +115,7 @@ export async function POST(request: Request) {
    */
   let phoneE164: string | null = null
   let phoneIso: string | null = null
-  if (values.phone) {
+  {
     const check = validatePhone(values.phone, values.phoneCountry || DEFAULT_DIAL_ISO)
     if (!check.ok) errors.phone = check.error
     else {

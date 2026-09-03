@@ -78,15 +78,18 @@ export function ContactForm() {
 
     /* Checked before the request rather than after it. The route re-checks and is the
        actual control — see the note at the top of this file — but a number the browser can
-       already see is wrong should not cost a round trip to be told so. Empty is fine: the
-       field is optional, and only a filled one is judged. */
-    if (phone.trim()) {
-      const check = validatePhone(phone, phoneIso)
-      if (!check.ok) {
-        setErrors({ phone: check.error })
-        setStatus('idle')
-        return
-      }
+       already see is wrong should not cost a round trip to be told so.
+
+       EVERY VALUE IS JUDGED NOW, INCLUDING THE EMPTY ONE. The field was optional and this
+       ran only on a filled input; it is required at the client's request, so an empty box
+       is a failure like any other. `validatePhone` already answers "Enter a phone number."
+       for an empty string, so requiring it needed no new message and no second code path —
+       the check simply stopped being conditional. */
+    const check = validatePhone(phone, phoneIso)
+    if (!check.ok) {
+      setErrors({ phone: check.error })
+      setStatus('idle')
+      return
     }
 
     setStatus('sending')
@@ -205,17 +208,11 @@ export function ContactForm() {
             leave one stranded alone on the last row. Name and email, then how else to
             reach you, then the two optional ones. */}
         <div className="space-y-1.5 sm:col-span-2">
-          {/* NO `justify-between` HERE, unlike every other field on this form, and the
-              difference is the full-width row rather than an inconsistency.
-
-              That rule puts the Optional tag on the right edge of the control it describes,
-              which is exactly right in a half-width cell — Company's sits a couple of
-              hundred pixels from its label and reads as belonging to it. Across the whole
-              form the same rule threw it about three hundred pixels out, against the far
-              margin, where it stopped reading as this field's marker and started reading as
-              a stray word floating above the row.
-
-              Beside the label it is unambiguous at any width, which is what the tag is for. */}
+          {/* NO "OPTIONAL" TAG, because the field is required at the client's request.
+              This form marks the exception rather than the rule — see the note on
+              <Field optional> — so a required field carries no marker at all, exactly
+              like Your name, Email and the message box. The line under the submit button
+              is what names the required set, and it names this one now. */}
           <div className="flex items-baseline gap-3">
             {/* Points at the NUMBER, not the country select — that is the control someone
                 clicking this label wants focus in, and the select carries its own
@@ -223,9 +220,6 @@ export function ContactForm() {
             <Label htmlFor="phone" className="text-[13.5px] font-semibold text-head">
               Phone
             </Label>
-            <span className="font-mono text-[12px] tracking-[0.12em] text-mut-2 uppercase sm:text-[10px]">
-              Optional
-            </span>
           </div>
 
           <div className="flex gap-2">
@@ -292,6 +286,12 @@ export function ContactForm() {
               id="phone"
               name="phone"
               type="tel"
+              /* `required` is for the accessibility tree, not for the browser's own
+                 validation — the form carries `noValidate`, so nothing here blocks a
+                 submit. It is what makes a screen reader announce the field as required,
+                 which is the half of "required" that the visual absence of an Optional
+                 tag cannot convey. */
+              required
               inputMode="tel"
               autoComplete="tel-national"
               value={phone}
@@ -427,8 +427,14 @@ export function ContactForm() {
         >
           {status === 'sending' ? 'Sending…' : 'Send it over'}
         </PillButton>
+        {/* IT HAD TO CHANGE WITH THE FIELD. This read "Name, email and a message are all
+            we need" while the phone was optional, and that sentence is the only thing on
+            the form that names the required set — the convention here marks the OPTIONAL
+            fields, so a visitor counts what is unmarked by reading this line. Leaving it
+            would have been a promise the form breaks on submit, one line under the button
+            that breaks it. */}
         <p className="text-[13.5px] text-mut-2">
-          Name, email and a message are all we need.
+          Name, email, phone and a message are all we need.
         </p>
       </div>
     </form>
