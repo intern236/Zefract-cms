@@ -1,0 +1,38 @@
+# Netlify configuration.
+#
+# This file sits at the repository root, which is `web/`. There is deliberately no
+# `base` setting: `base` is relative to the repo root, so the old `base = "web"`
+# would now resolve to `web/web` and fail. Paths below are repo-root relative.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Deploy Previews are created for every branch and PR by default, which is the
+# staging environment the brief requires (§10, L261-262) at no cost. No per-context
+# overrides are needed - they would just repeat the default build command.
+
+# ---------------------------------------------------------------------------
+# THE PRIMARY DOMAIN MUST BE THE APEX: zefract.com, not www.
+# ---------------------------------------------------------------------------
+#
+# Not settable from this file - it lives in Site configuration > Domain management -
+# but it is recorded here because getting it wrong breaks the site rather than just
+# looking untidy.
+#
+# The apex is the canonical host (content/site.ts), and next.config.ts carries a
+# host-scoped 301 from www to it. If the primary domain is left as www, Netlify
+# redirects apex -> www while the app redirects www -> apex, and the two fight: every
+# request loops until the browser gives up. Set the primary domain to zefract.com and
+# the two agree, with Netlify handling the redirect at the edge and the app's rule as
+# the version-controlled backstop.
+#
+# There is deliberately no [[redirects]] rule here doing the same job. A www -> apex
+# rule in this file would be the third place the same decision is written down, and
+# the one least likely to be found when it needs changing.

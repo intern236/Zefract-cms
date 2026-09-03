@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Form registration</title>
+    <meta name="robots" content="noindex" />
+  </head>
+  <body>
+    <!--
+      Netlify registers forms by parsing deployed HTML at build time. A React-rendered
+      form is invisible to that parser, so this static file declares the same form name
+      and field set. It is never shown to anyone; the real UI is components/forms/contact-form.tsx.
+
+      Keep the field names here in sync with that component, or submissions will arrive
+      with missing fields.
+    -->
+    <form name="start-a-project" data-netlify="true" data-netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="start-a-project" />
+      <input type="text" name="bot-field" />
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <input type="text" name="company" />
+      <input type="text" name="budget" />
+      <textarea name="message"></textarea>
+    </form>
+  </body>
+</html>

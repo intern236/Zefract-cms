@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 34" width="34" height="34">
+  <!--
+    The header mark, verbatim.
+
+    Matches components/brand/zefract-mark.tsx and components/motion/animated-mark.tsx:
+    same 34u artboard, the same twelve module positions, 6u modules at rx 0.5, and the
+    fracture module at 15.5, 15.5. Ink is #0f2038 (the value `text-head` resolves to on
+    the header mark) and the fracture is #E6551E (the brand accent). No tile, no plate,
+    no inversion; the logo as it appears on the site.
+
+    Two earlier versions were wrong, and are recorded so they are not retried:
+
+      1. A solid Z on a dark tile. Legible, but a different logo from the site's.
+      2. The modular mark in white on a dark navy tile. Same geometry, but an inverted
+         colourway is still not the same logo.
+
+    The one cost of dropping the tile: with no plate of its own, ink on dark browser
+    chrome would be near invisible. The media query below covers that. It swaps ink for
+    white only where the chrome is dark, and leaves the light appearance exactly as the
+    header's. Chrome and Firefox honour it for favicons; where it is ignored the
+    fallback is the ink mark, which is right for the light tab strips those browsers use.
+
+    Note for editors: this is parsed as XML, so a double hyphen may not appear inside
+    this comment. Write token names without their leading dashes.
+  -->
+  <style>
+    .ink { fill: #0f2038 }
+    @media (prefers-color-scheme: dark) {
+      .ink { fill: #ffffff }
+    }
+  </style>
+  <g class="ink">
+    <!-- top bar -->
+    <rect x="0" y="0" width="6" height="6" rx="0.5"/>
+    <rect x="7" y="0" width="6" height="6" rx="0.5"/>
+    <rect x="14" y="0" width="6" height="6" rx="0.5"/>
+    <rect x="21" y="0" width="6" height="6" rx="0.5"/>
+    <rect x="28" y="0" width="6" height="6" rx="0.5"/>
+    <!-- diagonal -->
+    <rect x="21" y="7" width="6" height="6" rx="0.5"/>
+    <rect x="7" y="21" width="6" height="6" rx="0.5"/>
+    <!-- bottom bar -->
+    <rect x="0" y="28" width="6" height="6" rx="0.5"/>
+    <rect x="7" y="28" width="6" height="6" rx="0.5"/>
+    <rect x="14" y="28" width="6" height="6" rx="0.5"/>
+    <rect x="21" y="28" width="6" height="6" rx="0.5"/>
+    <rect x="28" y="28" width="6" height="6" rx="0.5"/>
+  </g>
+  <!-- The fracture: the centre module, slipped 1.5u off the grid. -->
+  <rect x="15.5" y="15.5" width="6" height="6" rx="0.5" fill="#E6551E"/>
+</svg>
