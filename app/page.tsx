@@ -27,12 +27,11 @@ export default async function HomePage() {
           because <ProofBento> brings its own top padding and stacking the two was what
           made this band read as a hole in the page.
 
-          IT NOW CARRIES REAL CLIENTS, each linked to its own site, where it carried
-          eight invented wordmarks from the design comp. The markup moved into
-          <ClientLogos> along with them — a row of images with links is more than a page
-          file should be assembling inline. See CLIENT_LOGOS in content/site.ts for where
-          the logos came from, what was done to two of them to make them visible, and the
-          consent that is still owed on all six. */}
+          IT NOW CARRIES REAL CLIENTS, replacing eight invented wordmarks from the design
+          comp. The markup moved into <ClientLogos> along with them — a row of images is more
+          than a page file should be assembling inline. See CLIENT_LOGOS in content/site.ts
+          for where the logos came from, what was done to two of them to make them visible,
+          and the consent that is still owed on all seven. */}
       <ClientLogos />
       <ProofBento />
       <Pains />
