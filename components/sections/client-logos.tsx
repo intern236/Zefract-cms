@@ -6,16 +6,15 @@ import { CLIENT_LOGOS } from '@/content/site'
  *
  * ITS OWN COMPONENT RATHER THAN JSX IN app/page.tsx, because building the items means
  * mapping data into markup and the home page is a list of sections. It also keeps the one
- * place that knows how a logo is drawn — the height cap, the width cap, the link — next to
+ * place that knows how a logo is drawn — the height cap and the width cap — next to
  * the note explaining why those numbers are what they are.
  *
  * A SERVER COMPONENT. <Marquee> is the client half and needs to be, since it tracks hover
  * and focus to pause itself; these nodes are built on the server and handed over as
  * elements, so nothing about the logos or their addresses enters the client bundle as data.
  *
- * EVERY LOGO IS A LINK, which is the point of using real clients. The strip stops on hover
- * and on keyboard focus — see the note in marquee.tsx — so a moving target is not a moving
- * target by the time anyone tries to click it.
+ * Logos are display-only. The strip stops on hover and on keyboard focus — see the note in
+ * marquee.tsx — so the moving row remains easy to inspect.
  */
 export function ClientLogos() {
   return (
@@ -27,14 +26,7 @@ export function ClientLogos() {
       items={CLIENT_LOGOS.map((client) => ({
         key: client.name,
         node: (
-          <a
-            href={client.href}
-            target="_blank"
-            /* `noopener` is the security half — without it the opened tab gets a handle on
-               this one through window.opener. Same rel as every other outbound link here. */
-            rel="noopener noreferrer"
-            className="inline-flex h-10 items-center transition-opacity hover:opacity-70"
-          >
+          <span className="inline-flex h-10 items-center transition-opacity hover:opacity-70">
             {/* eslint-disable-next-line @next/next/no-img-element -- These are 5-24KB WebP
                 files already sized at 3x the box they render in, with alpha. Next's
                 optimizer would put a proxy hop in front of an asset it cannot meaningfully
@@ -53,9 +45,7 @@ export function ClientLogos() {
                 strip that is already moving also jumps as each logo lands. */}
             <img
               src={client.logo}
-              /* The company name, not "logo" and not empty. The link has no other text, so
-                 this is its entire accessible name — an empty alt would leave a keyboard
-                 user on an anchor announced as nothing but its URL. */
+              /* The company name identifies each display-only mark. */
               alt={client.name}
               width={client.width}
               height={client.height}
@@ -63,7 +53,7 @@ export function ClientLogos() {
               decoding="async"
               className="h-auto max-h-10 w-auto max-w-[150px] object-contain"
             />
-          </a>
+          </span>
         ),
       }))}
     />

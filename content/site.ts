@@ -247,42 +247,36 @@ export const HERO_PROOF: {
 export const CLIENT_LOGOS = [
   {
     name: 'Eximpedia',
-    href: 'https://www.eximpedia.app',
     logo: '/images/clients/eximpedia.webp',
     width: 598,
     height: 96,
   },
   {
     name: 'Seair Exim Solutions',
-    href: 'https://www.seair.co.in',
     logo: '/images/clients/seair.webp',
     width: 544,
     height: 96,
   },
   {
     name: 'Proffer IT Consultancy',
-    href: 'https://www.profferit.in',
     logo: '/images/clients/proffer.webp',
     width: 697,
     height: 96,
   },
   {
     name: 'Decor Masters',
-    href: 'https://www.decor-masters.com',
     logo: '/images/clients/decor-masters.webp',
     width: 113,
     height: 96,
   },
   {
     name: 'Tracks 2 Curtains',
-    href: 'https://tracks2curtains.com',
     logo: '/images/clients/tracks2curtains.webp',
     width: 158,
     height: 96,
   },
   {
     name: '4th Generation Resources',
-    href: 'https://www.4thgenerationresources.com',
     logo: '/images/clients/4th-generation.webp',
     width: 342,
     height: 96,
@@ -294,7 +288,6 @@ export const CLIENT_LOGOS = [
        The wordmark reads "APRICUS" alone; the name here is the company's, which is what
        the link is announced as. */
     name: 'Apricus Premium Solar',
-    href: 'https://apricuspremiumsolar.com',
     logo: '/images/clients/apricus.webp',
     width: 436,
     height: 96,
