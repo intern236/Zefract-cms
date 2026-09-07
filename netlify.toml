@@ -10,7 +10,9 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  SECRETS_SCAN_OMIT_KEYS = "MONGODB_DB,SMTP_USER,MAIL_TO"
+  # These variables intentionally contain values also published as site contact data.
+  # Keep private credentials out of this list; use a private, distinct mailbox for 2FA.
+  SECRETS_SCAN_OMIT_KEYS = "MONGODB_DB,SMTP_USER,MAIL_TO,ADMIN_2FA_EMAIL"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
