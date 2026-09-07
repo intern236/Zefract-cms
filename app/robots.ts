@@ -1,4 +1,7 @@
+import { headers } from 'next/headers'
 import type { MetadataRoute } from 'next'
+
+import { isStagingHost } from '@/lib/staging'
 import { absoluteUrl } from '@/lib/url'
 
 /**
@@ -56,7 +59,40 @@ const AI_AGENTS = [
   'Applebot-Extended',
 ]
 
-export default function robots(): MetadataRoute.Robots {
+/**
+ * READ AT REQUEST TIME, NOT BUILD TIME, and that is the whole reason this route is
+ * dynamic. `robots.ts` is normally prerendered once and served as a static file, which
+ * cannot work here: `zefract-website.netlify.app` and `zefract.com` are the same
+ * build, so the two hosts would be handed the same bytes. `headers()` is a request-time
+ * API and opts the route into dynamic rendering on its own; `dynamic` is stated anyway
+ * so the intent survives a refactor rather than resting on a side effect.
+ *
+ * The cost is one function invocation per /robots.txt request instead of a CDN hit, on a
+ * file crawlers fetch on the order of once a day.
+ */
+export const dynamic = 'force-dynamic'
+
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  if (isStagingHost((await headers()).get('host'))) {
+    /**
+     * Every crawler, every path, on any host that is not the canonical one.
+     *
+     * NO `sitemap` LINE, deliberately. A file that closes the whole site and then
+     * advertises an index of it is contradictory, and the sitemap it would name is built
+     * by absoluteUrl from SITE.url, so on a staging host it lists apex URLs: worse than
+     * pointing a crawler at staging is pointing it at production FROM staging and
+     * inviting the comparison.
+     *
+     * DISALLOW IS NOT PRIVACY. It asks politely, only well-behaved crawlers listen, and
+     * because it blocks the FETCH it also stops those crawlers from ever seeing the
+     * `X-Robots-Tag: noindex` that proxy.ts sets, so a staging URL that picks up an
+     * external link can still surface as a bare URL. It is sufficient here only because
+     * these hosts have never been crawled. Making staging genuinely invisible means
+     * Netlify's visitor-access password, at which point this becomes belt and braces.
+     */
+    return { rules: { userAgent: '*', disallow: '/' } }
+  }
+
   return {
     rules: [
       {

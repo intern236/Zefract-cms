@@ -1939,6 +1939,49 @@ form.card-pop:focus-within {
   letter-spacing: -0.02em;
   line-height: 1.3;
 }
+/* ---- h4, h5, h6 -----------------------------------------------------------
+   THE SCALE HAS TO KEEP DESCENDING PAST BODY SIZE, which is the whole problem
+   with the lower levels. Body copy here is 16.5px, so an h4 at 17.5 is barely
+   above it and an h5 below it — size alone stops carrying the hierarchy after
+   the third level, and three near-identical bold lines would leave a writer
+   unable to see which subdivision they are in.
+
+   So each of these three separates itself on a different axis: h4 by size and
+   weight, h5 by weight and colour against a smaller size, h6 by changing
+   typeface outright. */
+.blog-prose h4 {
+  margin-top: 1.5em;
+  color: var(--color-head);
+  font-size: 17.5px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+.blog-prose h5 {
+  margin-top: 1.4em;
+  color: var(--color-head);
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
+}
+/* MONO UPPERCASE, NOT A FOURTH BOLD SANS LINE, and that is a legibility call
+   rather than a flourish. At the size an h6 has to sit — below h5's 15.5px and
+   therefore well below the 16.5px body — a bold sans heading is indistinguishable
+   from a bold run inside a paragraph, so the level would be invisible in exactly
+   the deep hierarchy it exists to express. Mono uppercase with open tracking is
+   the site's own smallest-label idiom (the section eyebrows, the mono field
+   labels), so it reads as a heading immediately and belongs to the same page. */
+.blog-prose h6 {
+  margin-top: 1.4em;
+  color: var(--color-head);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
 /* The first block hangs on the container's own spacing, not its own margin. */
 .blog-prose > :first-child {
   margin-top: 0;
@@ -2107,6 +2150,89 @@ form.card-pop:focus-within {
   border-top: 1px solid var(--color-line);
 }
 
+/* ---- Tables in a post ----------------------------------------------------
+   The same treatment the legal pages and the case narrative already use, so a
+   comparison table inside an article looks like every other table on the site.
+
+   THE SCROLL LIVES ON THE WRAPPER, NEVER ON THE TABLE. `display: block` with
+   `overflow-x: auto` on the <table> is the shorter fix and it silently strips
+   the rows and cells out of the accessibility tree in Chrome and Firefox — the
+   finding recorded against <CompareStack> in compare.tsx. The wrapper is added
+   at render by renderablePostHtml in lib/blog.ts; the stored markup stays a bare
+   <table> so it can be loaded straight back into the editor.
+
+   THE NEGATIVE MARGIN LETS IT BREAK THE MEASURE. Prose is capped at 68ch and a
+   three-column comparison rarely fits inside that, so on a phone the table
+   scrolls edge to edge rather than being squeezed into the reading column. From
+   sm it sits back inside the column like every other block. */
+.blog-table-scroll {
+  margin-top: 1.8em;
+  margin-bottom: 1.8em;
+  margin-inline: -24px;
+  padding-inline: 24px;
+  overflow-x: auto;
+}
+@media (min-width: 640px) {
+  .blog-table-scroll {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+/* The wrapper owns the vertical rhythm, so the table inside must not add its own
+   on top of it — `.blog-prose > * + *` has already spaced the wrapper. */
+.blog-prose .blog-table-scroll table {
+  margin: 0;
+}
+.blog-prose table {
+  width: 100%;
+  /* Wide enough that the columns do not collapse into single words, which is
+     what makes a comparison unreadable. Below this the wrapper scrolls. */
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.55;
+  text-align: left;
+}
+.blog-prose thead tr {
+  border-bottom: 1px solid var(--color-line);
+}
+.blog-prose th {
+  padding: 0 1rem 0.75rem 0;
+  color: var(--color-mut-2);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  vertical-align: bottom;
+}
+/* A row header — the first cell of a body row, where the writer has marked one.
+   It is the row's subject, so it carries the weight the column headers do not. */
+.blog-prose tbody th {
+  padding: 1rem 1.5rem 1rem 0;
+  color: var(--color-head);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  vertical-align: top;
+}
+.blog-prose tbody tr {
+  border-bottom: 1px solid var(--color-line);
+}
+.blog-prose tbody tr:last-child {
+  border-bottom: 0;
+}
+.blog-prose td {
+  padding: 1rem 1.5rem 1rem 0;
+  vertical-align: top;
+}
+.blog-prose th:last-child,
+.blog-prose td:last-child {
+  padding-right: 0;
+}
+
 /* ---- The admin editor's chrome -------------------------------------------------
    Additions the EDITING surface needs that the published page must not have.
    Kept separate from .blog-prose so the shared prose styles stay honest. */
@@ -2159,6 +2285,21 @@ form.card-pop:focus-within {
 .tiptap-editing h3 {
   font-size: 18px;
   margin-top: 1.35em;
+}
+/* h4 and h5 come down with them, so the gaps between levels stay proportional
+   in the editor. Without this, the published h4 at 17.5px would sit between the
+   editor's tightened h3 (18px) and h2 (22px) by half a pixel, and a writer
+   could not tell an h3 from an h4 on the surface where they choose one.
+
+   h6 is deliberately absent: it is mono uppercase rather than a size in the sans
+   scale, so it is already unmistakable and has nothing to be compressed against. */
+.tiptap-editing h4 {
+  font-size: 16px;
+  margin-top: 1.3em;
+}
+.tiptap-editing h5 {
+  font-size: 14.5px;
+  margin-top: 1.25em;
 }
 
 /* ---- Admin chrome --------------------------------------------------------------
@@ -2223,4 +2364,49 @@ body:has([data-admin-surface]) .cursor-ring {
 .tiptap-editing img.ProseMirror-selectednode {
   outline: 3px solid var(--color-brand);
   outline-offset: 2px;
+}
+
+/* ---- Tables on the editing surface ---------------------------------------
+   A table is the one block whose editing view has to differ from its published
+   one, and the reason is structural rather than decorative: published, a table
+   is read, and the borders that matter are the horizontal rules separating rows.
+   Being edited, it is a grid of targets a writer has to aim a caret at, and a
+   cell with no visible edge is a cell you cannot tell you are in.
+
+   So every cell is outlined here and nowhere else. The published rules from
+   .blog-prose still apply underneath — same type, same padding, same header
+   treatment — so this adds the grid and changes nothing about how it reads.
+
+   TipTap wraps the table in its own `.tableWrapper` while editing. That element
+   is a NodeView artifact and never reaches `getHTML()`, so it is styled here and
+   has no counterpart in the stored markup. */
+.tiptap-editing .tableWrapper {
+  margin: 1.5em 0;
+  overflow-x: auto;
+}
+.tiptap-editing table {
+  min-width: 0;
+  table-layout: fixed;
+}
+.tiptap-editing th,
+.tiptap-editing td {
+  position: relative;
+  border: 1px solid var(--color-line);
+  padding: 0.6rem 0.75rem;
+}
+/* The header row gets the page background, so the row that will become <th> on
+   the published page is identifiable while it is being filled in. */
+.tiptap-editing th {
+  background: var(--color-page);
+}
+/* The active cell. `selectedCell` is ProseMirror's own class, applied to every
+   cell in the current selection — so this marks a dragged range of cells as well
+   as the one the caret sits in, which is what the row and column controls in the
+   toolbar act on. */
+.tiptap-editing .selectedCell:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-brand) 10%, transparent);
+  pointer-events: none;
 }

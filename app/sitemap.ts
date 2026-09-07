@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { getPillars, getServices, getCaseStudies } from '@/lib/content'
 import { getPublicAuthors } from '@/lib/authors'
-import { getPublishedPosts } from '@/lib/blog'
+import { getPublishedPosts, getPublishedTags } from '@/lib/blog'
 import { absoluteUrl } from '@/lib/url'
 
 /**
@@ -27,6 +27,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      them would advertise a 404. getPublicAuthors is the same filter the profile
      route enforces. */
   const authors = await getPublicAuthors()
+  /* Derived from published posts, so a tag whose only post is a draft has no
+     entry — the archive route 404s that case, and a sitemap must never advertise
+     a URL that does not resolve. */
+  const tags = await getPublishedTags()
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: absoluteUrl('/'), lastModified: now, changeFrequency: 'weekly', priority: 1 },
@@ -111,6 +115,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: a.updatedAt,
       changeFrequency: 'monthly' as const,
       priority: 0.4,
+    })),
+    /* Tag archives, last and lowest. They are navigation rather than content —
+       every word on one is a link to a post already listed above — so they are
+       worth crawling for discovery and should never outrank the posts they point
+       at. No real lastModified: a tag has no timestamp of its own, and the date
+       that would matter is the newest post carrying it, which changes the moment
+       any of them is edited. `weekly` says the same thing without asserting a
+       date this file cannot stand behind. */
+    ...tags.map((t) => ({
+      url: absoluteUrl(`/blog/tag/${t.slug}`),
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.3,
     })),
   ]
 }

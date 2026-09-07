@@ -12,7 +12,7 @@ import {
   GoogleTagManagerNoScript,
 } from '@/components/analytics/google-tag-manager'
 import { OrganizationSchema } from '@/lib/schema'
-import { SITE } from '@/content/site'
+import { ANALYTICS, SITE } from '@/content/site'
 import { PAGE_META } from '@/content/meta'
 import { absoluteUrl } from '@/lib/url'
 
@@ -119,10 +119,30 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
   },
   robots: { index: true, follow: true },
-  /* Google Search Console ownership token, supplied at deploy time. Spread conditionally so
-     an unset variable renders no tag at all rather than an empty one. */
-  ...(process.env.GOOGLE_SITE_VERIFICATION
-    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+  /**
+   * Google Search Console ownership token, rendered into the document head as
+   * `<meta name="google-site-verification" content="…">`.
+   *
+   * THE ENVIRONMENT WINS WHERE IT IS SET, so a deploy preview or a second property can be
+   * verified without touching the repository. Where it is not, the token in content/site.ts
+   * is used — see the note there for why a public-by-definition value lives in the content
+   * layer rather than in a hosting dashboard, which is the same call ANALYTICS.gtmId makes.
+   *
+   * STILL SPREAD CONDITIONALLY. With both sources empty this renders no tag at all rather
+   * than an empty one, which is what an unverifiable `content=""` would be.
+   *
+   * ON EVERY PAGE, NOT ONLY THE HOME PAGE. Search Console asks for the tag on the home page
+   * and checks it there; metadata declared in the root layout is inherited by every route,
+   * and no page sets `verification` of its own, so the tag is present site-wide. A superset
+   * of what is required, and it means verification survives the home page being rebuilt.
+   */
+  ...(process.env.GOOGLE_SITE_VERIFICATION || ANALYTICS.googleSiteVerification
+    ? {
+        verification: {
+          google:
+            process.env.GOOGLE_SITE_VERIFICATION || ANALYTICS.googleSiteVerification,
+        },
+      }
     : {}),
 }
 

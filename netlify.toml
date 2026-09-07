@@ -39,3 +39,42 @@
 # There is deliberately no [[redirects]] rule here doing the same job. A www -> apex
 # rule in this file would be the third place the same decision is written down, and
 # the one least likely to be found when it needs changing.
+
+# ---------------------------------------------------------------------------
+# THE NETLIFY SUBDOMAIN MUST NOT SERVE THE SITE.
+# ---------------------------------------------------------------------------
+#
+# zefract-website.netlify.app and zefract.com are the SAME production deploy, served
+# by the same functions. Without this rule every page exists at two hostnames and the
+# site is a duplicate of itself, which is the problem the www -> apex rule exists to
+# prevent, one hostname further out.
+#
+# NETLIFY'S AUTOMATIC noindex DOES NOT COVER THIS HOST. Netlify adds
+# `X-Robots-Tag: noindex` to Deploy Previews, unpublished production deploys and OLD
+# branch deploys. The published production deploy is explicitly indexable, and this
+# subdomain is that deploy.
+#
+# A 301 RATHER THAN THE `Disallow: /` THE BRIEF ASKS FOR ON THIS HOST, because the two
+# are not the same strength. Disallow asks a crawler not to fetch a second copy; a
+# permanent redirect removes the second address and hands its signals to the first.
+# The brief's rule still runs everywhere else: app/robots.ts serves `Disallow: /` on
+# every other non-canonical host, which is branch deploys, Deploy Previews and any
+# future staging site.
+#
+# HERE RATHER THAN next.config.ts, unlike the www -> apex rule, and the difference is
+# load-bearing. Next matches `has: [{ type: 'host' }]` as a PATTERN, and
+# `dev--zefract-website.netlify.app` contains `zefract-website.netlify.app`: if that
+# match is not anchored, the rule bounces every branch deploy and Deploy Preview to
+# production and there is no staging environment left to test on. Netlify matches the
+# hostname in `from` exactly, so branch subdomains are untouched. Verify a branch
+# deploy still serves its own pages after changing this.
+#
+# `force = true` so it wins over the page that would otherwise be served at the path.
+# Netlify processes user-defined rules ahead of the ones @netlify/plugin-nextjs
+# generates. Only https is listed because netlify.app is HSTS-preloaded and never
+# answers on http.
+[[redirects]]
+  from = "https://zefract-website.netlify.app/*"
+  to = "https://zefract.com/:splat"
+  status = 301
+  force = true

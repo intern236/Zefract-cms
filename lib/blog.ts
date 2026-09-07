@@ -30,6 +30,23 @@ export interface BlogPost {
   title: string
   /** The SERP description and the card excerpt. One field, so they cannot disagree. */
   description: string
+  /**
+   * The standfirst printed under the headline, in the post's own voice.
+   *
+   * A SECOND FIELD, BECAUSE THE FIRST WAS DOING TWO JOBS. `description` is
+   * written for a search result: about 160 characters, front-loaded with the
+   * terms someone would type, and read out of context by a stranger. A
+   * standfirst is read immediately under the title by someone who has already
+   * arrived, and its job is to make them keep going. Those are different pieces
+   * of writing, and the page used to print the SERP one in the reader's
+   * position — so every post opened with a line optimised for a machine.
+   *
+   * NULL FALLS BACK TO `description`, which is exactly what the page did before,
+   * so every post published so far keeps the standfirst it already had and
+   * nothing needs migrating. It stops being a fallback the moment somebody
+   * writes an introduction.
+   */
+  excerpt: string | null
   /** Sanitised HTML from the editor. The ONLY thing ever rendered — see sanitizePostHtml. */
   contentHtml: string
   /**
@@ -67,6 +84,30 @@ export interface BlogPost {
    */
   category: string | null
   tags: string[]
+  /**
+   * Questions and answers attached to the post, rendered as an accordion and
+   * published as FAQPage JSON-LD.
+   *
+   * STRUCTURED, NOT PROSE, AND THAT IS THE ENTIRE POINT. A writer can already
+   * type "Frequently asked questions" as an h2 and a list of questions
+   * underneath it, and readers can read that perfectly well — but a search
+   * engine sees an ordinary run of headings and paragraphs, so the post is not
+   * eligible for the FAQ rich result or for the answer surfaces the site's own
+   * AEO and GEO pages sell. Schema.org needs each question paired with its
+   * answer as data, which is what this field is.
+   *
+   * PLAIN TEXT ANSWERS, deliberately, matching the site's other FAQs (see
+   * content/types.ts, `Faq`). schema.org's `acceptedAnswer.text` is a string,
+   * and giving an answer its own rich text would mean a second sanitiser, a
+   * second editor surface and markup that the schema would then have to strip
+   * again before publishing it. Two or three sentences is what an answer worth
+   * marking up looks like.
+   *
+   * An empty array is the normal state. Most posts are not FAQs, and a post with
+   * none renders no section and emits no schema — an empty FAQPage would be a
+   * claim about a page that has no questions on it.
+   */
+  faqs: { question: string; answer: string }[]
   /**
    * Who wrote it — an id into the `authors` collection, resolved by lib/authors.ts.
    *
@@ -109,10 +150,42 @@ export interface BlogPost {
 export const POST_LIMITS = {
   title: 160,
   slug: 96,
-  description: 300,
+  /**
+   * The meta description and the card excerpt, one field.
+   *
+   * 320, UP FROM 300, AND IT IS A STORAGE CAP RATHER THAN EDITORIAL ADVICE —
+   * the distinction this whole block's opening note draws. What a search result
+   * displays is nearer 160 characters, and the SEO panel measures against that
+   * and shows the cut in its preview; this number only exists so a hand-crafted
+   * request cannot put an essay in the field.
+   *
+   * The two are now genuinely independent, where before they were not: the
+   * published description used to be clamped to 155 at render, so anything typed
+   * past that was stored and then silently dropped. That clamp is gone (see
+   * app/blog/[slug]/page.tsx), which is what makes the extra room usable rather
+   * than a longer runway to the same truncation.
+   *
+   * 320 is deliberately about double the display width. It leaves space for a
+   * description written for a wide result, or one carrying a clause the writer
+   * accepts will be cut, without being so generous that the field stops reading
+   * as a summary.
+   */
+  description: 320,
+  /** The standfirst. Longer than the description because it is read on the page
+   *  rather than inside a result, so nothing is truncating it at 160. */
+  excerpt: 400,
   category: 60,
   tag: 40,
   tagCount: 12,
+  /* One FAQ entry, and how many a post may carry. The caps are generous next to
+     what a good FAQ actually contains: a question that needs 200 characters is
+     usually two questions, and a page with more than twelve of them is a help
+     centre rather than an article. As with every other number here, the job is
+     to stop a hand-crafted request filling the collection, not to police the
+     editor — which keeps well inside them. */
+  faqQuestion: 200,
+  faqAnswer: 900,
+  faqCount: 12,
   seoTitle: 80,
   focusKeyword: 60,
   coverAlt: 125,
@@ -145,10 +218,26 @@ export const POST_LIMITS = {
  */
 const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
-    'p', 'h2', 'h3',
+    /* h2 THROUGH h6, matching the TipTap configuration in the admin editor
+       exactly — a tag the editor can emit but the sanitiser strips is content
+       that vanishes on save, which is the failure the countImageTags guard
+       further down exists to catch for images. h1 stays out: the post's title
+       is the page's h1, and a second one would give the document two titles. */
+    'p', 'h2', 'h3', 'h4', 'h5', 'h6',
     'strong', 'em', 's', 'u', 'code',
     'a', 'ul', 'ol', 'li',
     'blockquote', 'pre', 'img', 'hr', 'br',
+    /* A REAL TABLE, NOT A PICTURE OF ONE. Comparison content was being pasted in
+       as a screenshot, which is unreadable on a phone, invisible to search, and
+       impossible to select or translate. These are the tags TipTap's TableKit
+       emits and nothing more.
+
+       `colgroup` and `col` are deliberately absent, though the editor produces
+       them: they carry the pixel column widths from the editing surface, which
+       are a property of a 900px admin panel and have no business deciding how a
+       table lays out on a phone. Dropping them lets the published table size
+       itself from its own content. */
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
   ],
   allowedAttributes: {
     /**
@@ -167,6 +256,14 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
      */
     a: ['href', 'data-button'],
     img: ['src', 'alt'],
+    /* Merged cells survive, because a comparison table that has been through a
+       merge and comes out with its cells unmerged is worse than no table.
+       `scope` is what makes a header cell announce which row or column it heads
+       — the difference between a screen reader saying "Zefract: yes" and saying
+       a detached "yes". sanitize-html discards any value it is not given, so
+       these cannot carry anything but the numbers and keywords they are for. */
+    th: ['colspan', 'rowspan', 'scope'],
+    td: ['colspan', 'rowspan'],
   },
   allowedSchemes: ['https', 'http', 'mailto'],
   allowProtocolRelative: false,
@@ -220,6 +317,111 @@ export function sanitizePostHtml(html: string): string {
  *  see the guard in the save action. */
 export function countImageTags(html: string): number {
   return (html.match(/<img\b/gi) ?? []).length
+}
+
+/**
+ * The stored HTML, made ready to render: every table wrapped in a scroll
+ * container.
+ *
+ * WHY A WRAPPER AND NOT CSS. The obvious fix for a table too wide for a phone is
+ * `display: block; overflow-x: auto` on the table itself, and it is the wrong
+ * one — changing a table's `display` strips its rows and cells out of the
+ * accessibility tree in Chrome and Firefox, so a screen reader stops being able
+ * to say which column a figure is in. This project has already made that call
+ * once, in the note on <CompareStack> in components/sections/compare.tsx, and
+ * every other table on the site (the legal pages, the case narrative) uses the
+ * same arrangement this produces: a scrolling element AROUND an untouched table.
+ *
+ * AT RENDER RATHER THAN ON SAVE, so `contentHtml` in the database stays exactly
+ * what the sanitiser produced. The same string is loaded back into TipTap when
+ * the post is edited, and a `<div>` injected into it would be stripped by the
+ * allowlist on the next save — the stored copy has to stay editable.
+ *
+ * A STRING REPLACE IS SAFE HERE SPECIFICALLY BECAUSE THE INPUT IS SANITISED.
+ * `table` allows no attributes, so the sanitiser can only ever emit the bare
+ * `<table>` this matches, and tables cannot nest inside one another in the
+ * markup TipTap produces. On anything else this would be the wrong tool.
+ */
+export function renderablePostHtml(html: string): string {
+  return html
+    .replaceAll('<table>', '<div class="blog-table-scroll"><table>')
+    .replaceAll('</table>', '</table></div>')
+}
+
+/** Elements with no closing tag, which must not move the depth counter below. */
+const VOID_TAGS = new Set(['img', 'hr', 'br'])
+
+/**
+ * How much of a post has to exist before it is worth interrupting.
+ *
+ * A CTA halfway through a three-paragraph post lands about forty words in,
+ * which is not a reader who has invested anything yet — it is an advert above
+ * the fold with the article wrapped around it. Below this the post renders in
+ * one piece and the band at the foot is the only ask.
+ *
+ * Measured in characters of markup rather than words because that is what is to
+ * hand, and the number only has to separate "a short note" from "a long read".
+ */
+const MID_CTA_MIN_LENGTH = 2200
+
+/**
+ * Splits a post in two at a top-level block boundary near its middle, for a
+ * mid-article call to action.
+ *
+ * WHY IT IS SPLIT AT ALL, rather than the CTA being a thing writers place. A
+ * block they have to remember is a block that appears in the first two posts
+ * and never again, and its position then varies with whoever was paying
+ * attention. Deriving the position means every article carries one, in the same
+ * relative place, without anybody maintaining it.
+ *
+ * THE DEPTH COUNTER IS THE WHOLE FUNCTION. The obvious implementation splits on
+ * `</p>`, and it is wrong in two ways that both produce broken markup: a
+ * paragraph inside a blockquote, and — since tables arrived — a paragraph inside
+ * a table cell. Cutting there would close a `<blockquote>` or a `<table>` that
+ * was never opened in the second half, and browsers recover from that by
+ * silently discarding content. So tags are counted in and out, and a cut is only
+ * ever offered at a point where nothing is open.
+ *
+ * IT ONLY EVER CUTS BETWEEN TOP-LEVEL BLOCKS, which is also why the two halves
+ * can be handed straight to `dangerouslySetInnerHTML` — each is a complete run
+ * of balanced elements, not a fragment of one.
+ *
+ * Returns `null` when the post is too short to interrupt, or when no boundary
+ * sits anywhere near the middle — a single enormous table has no midpoint, and
+ * the honest answer there is to leave the article alone.
+ */
+export function splitForMidCta(html: string): { before: string; after: string } | null {
+  if (html.length < MID_CTA_MIN_LENGTH) return null
+
+  /* Every offset at which the markup is back at depth zero, i.e. the end of a
+     top-level block and a legal place to cut. */
+  const boundaries: number[] = []
+  let depth = 0
+  const tag = /<(\/?)([a-z0-9]+)[^>]*?(\/?)>/gi
+  let match: RegExpExecArray | null
+
+  while ((match = tag.exec(html)) !== null) {
+    const [full, closing, name, selfClosing] = match
+    if (VOID_TAGS.has(name.toLowerCase()) || selfClosing === '/') continue
+    depth += closing ? -1 : 1
+    if (depth === 0 && closing) boundaries.push(match.index + full.length)
+  }
+
+  if (boundaries.length < 2) return null
+
+  /* The boundary closest to halfway. Not the first one past halfway: on a post
+     whose second half is one long table, that would be the very end. */
+  const middle = html.length / 2
+  const cut = boundaries.reduce((best, offset) =>
+    Math.abs(offset - middle) < Math.abs(best - middle) ? offset : best
+  )
+
+  /* A cut in the first or last fifth is not a mid-article position, whatever the
+     arithmetic says — it would put the CTA under the opening paragraph or just
+     above the footer band, where one of the two is redundant. */
+  if (cut < html.length * 0.2 || cut > html.length * 0.8) return null
+
+  return { before: html.slice(0, cut), after: html.slice(cut) }
 }
 
 // ---------------------------------------------------------------------------
@@ -303,12 +505,36 @@ function readCoverText(
   return doc[legacy] ? String(doc[legacy]) : null
 }
 
+/**
+ * The stored FAQ list, coerced.
+ *
+ * SAME DISCIPLINE AS toCloudinaryImage ABOVE: a document read back may predate
+ * the field, may have been written straight into the database, and may hold
+ * anything. An entry missing either half is dropped rather than rendered — a
+ * question with no answer is not an FAQ, and publishing one as FAQPage schema
+ * would be asserting an answer exists where none does.
+ */
+function toFaqs(value: unknown): { question: string; answer: string }[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return []
+    const raw = entry as Record<string, unknown>
+    const question = typeof raw.question === 'string' ? raw.question.trim() : ''
+    const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
+    return question && answer ? [{ question, answer }] : []
+  })
+}
+
 function toPost(doc: WithId<Document>): BlogPost {
   return {
     id: String(doc._id),
     slug: String(doc.slug),
     title: String(doc.title),
     description: String(doc.description),
+    /* Null rather than an empty string for an absent standfirst, so the render
+       path's `excerpt || description` fallback fires on a post written before
+       the field existed as well as on one whose field was cleared. */
+    excerpt: doc.excerpt ? String(doc.excerpt) : null,
     contentHtml: String(doc.contentHtml),
     coverImage: toCloudinaryImage(doc.coverImage),
     coverImageId: doc.coverImageId ? String(doc.coverImageId) : null,
@@ -319,6 +545,7 @@ function toPost(doc: WithId<Document>): BlogPost {
     coverCaption: readCoverText(doc, 'caption', 'coverCaption'),
     category: doc.category ? String(doc.category) : null,
     tags: Array.isArray(doc.tags) ? doc.tags.map(String) : [],
+    faqs: toFaqs(doc.faqs),
     authorId: doc.authorId ? String(doc.authorId) : null,
     seoTitle: doc.seoTitle ? String(doc.seoTitle) : null,
     focusKeyword: doc.focusKeyword ? String(doc.focusKeyword) : null,
@@ -383,6 +610,74 @@ export async function getPublishedPostsByAuthor(authorId: string): Promise<BlogP
     .sort({ publishedAt: -1 })
     .toArray()
   return docs.map(toPost)
+}
+
+/**
+ * A tag as it appears in a URL: `/blog/tag/paid-advertising`.
+ *
+ * DERIVED, NOT STORED. A tag is saved as the writer typed it ("Paid
+ * advertising") because that is what has to be printed; the slug is a view of
+ * it. Storing both would mean a second field to keep in step, and renaming a
+ * tag would have to rewrite every post that used it.
+ *
+ * TWO TAGS CAN COLLIDE HERE and that is the better outcome. "AI/ML" and "AI ML"
+ * both reduce to `ai-ml`, so one archive shows the posts under both — which is
+ * what a reader following either of them wanted. The alternative is two pages
+ * that each hide half the answer.
+ */
+export function tagSlug(tag: string): string {
+  return slugify(tag)
+}
+
+/**
+ * Published posts carrying a tag, newest first — the tag archive.
+ *
+ * MATCHED ON THE SLUG, IN MEMORY, rather than with a Mongo query on the raw
+ * tag. The URL carries `paid-advertising` and the database holds "Paid
+ * advertising", so a query would have to either store the slug alongside every
+ * tag or reconstruct the original casing and punctuation from the slug, and the
+ * second is not possible — `ai-ml` cannot be turned back into "AI/ML".
+ *
+ * The cost is reading the published posts to filter them, which is the same
+ * single query the blog index already makes. At the scale a studio blog reaches
+ * that is cheaper than the index it would take to avoid it; if this ever holds
+ * thousands of posts, the fix is a stored `tagSlugs` array written on save, and
+ * this function is the only thing that changes.
+ */
+export async function getPublishedPostsByTag(slug: string): Promise<BlogPost[]> {
+  const wanted = slugify(slug)
+  if (!wanted) return []
+  const posts = await getPublishedPosts()
+  return posts.filter((post) => post.tags.some((tag) => tagSlug(tag) === wanted))
+}
+
+/**
+ * Every tag in use on a published post, with the display form and how many
+ * posts carry it.
+ *
+ * THE DISPLAY FORM IS THE FIRST SPELLING SEEN, in the newest-first order the
+ * index already uses, so a tag recently written as "SEO" wins over an older
+ * "seo". The editor's suggestion chips make divergent spellings rare; this makes
+ * the archive readable when they happen anyway.
+ *
+ * Published only, like every other public accessor here: a tag whose only post
+ * is a draft has no archive to link to.
+ */
+export async function getPublishedTags(): Promise<
+  { tag: string; slug: string; count: number }[]
+> {
+  const posts = await getPublishedPosts()
+  const bySlug = new Map<string, { tag: string; slug: string; count: number }>()
+  for (const post of posts) {
+    for (const tag of post.tags) {
+      const slug = tagSlug(tag)
+      if (!slug) continue
+      const existing = bySlug.get(slug)
+      if (existing) existing.count += 1
+      else bySlug.set(slug, { tag, slug, count: 1 })
+    }
+  }
+  return [...bySlug.values()].sort((a, b) => a.tag.localeCompare(b.tag))
 }
 
 // ---- Admin-side accessors — no unconfigured fallback: the admin NEEDS the DB.

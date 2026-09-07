@@ -32,7 +32,26 @@ import { cn } from '@/lib/utils'
 const TITLE_MIN = 20
 const TITLE_MAX = 60
 const DESCRIPTION_MIN = 70
+/** What a search result actually displays. Guidance, not a cap — see
+ *  DESCRIPTION_LIMIT below for the difference, which used to not exist. */
 const DESCRIPTION_MAX = 160
+/**
+ * What the field accepts. Mirrors POST_LIMITS.description in lib/blog.ts, which
+ * enforces it server-side and is the number that counts.
+ *
+ * MIRRORED BY HAND RATHER THAN IMPORTED, and it has to be: lib/blog.ts pulls in
+ * the MongoDB driver, so importing it into this client component would be a
+ * build error. Same arrangement, and the same reason, as TITLE_TARGET and
+ * TAG_MAX in post-editor.tsx. Change one, change the other.
+ *
+ * THE GAP BETWEEN THIS AND DESCRIPTION_MAX IS THE POINT. Past 160 characters a
+ * description is still published in full and still indexed; what happens is that
+ * a result shows only the first part of it. Before, the published description
+ * was clamped at 155 whatever was typed, so the two numbers described the same
+ * wall and the writer could not tell the difference between advice and a limit.
+ * Now the counter warns at 160 and the field stops at 320.
+ */
+const DESCRIPTION_LIMIT = 320
 const KEYWORD_MAX = 60
 const WORDS_MIN = 300
 
@@ -99,9 +118,12 @@ export function SeoPanel({
         detail: t === 0 ? 'not written' : `${t} chars`,
       },
       {
-        label: 'Description is 70–160 characters',
+        /* Names the reason rather than the rule. The number is not a limit any
+           more — a longer description publishes whole — so a check reading
+           "70-160 characters" would look like a cap the writer had broken. */
+        label: 'Description fits a search result',
         pass: d >= DESCRIPTION_MIN && d <= DESCRIPTION_MAX,
-        detail: d === 0 ? 'not written' : `${d} chars`,
+        detail: d === 0 ? 'not written' : `${d} / ${DESCRIPTION_MAX}`,
       },
       { label: 'At least 300 words', pass: words >= WORDS_MIN, detail: `${words} words` },
       {
@@ -221,6 +243,11 @@ export function SeoPanel({
                 id="description"
                 name="description"
                 value={description}
+                /* The hard cap, so the field itself stops at what the server
+                   will store. Without it an over-long description was accepted
+                   here and refused on save, which is the worst order to find
+                   out. The counter's 160 is the softer, editorial number. */
+                maxLength={DESCRIPTION_LIMIT}
                 onChange={(event) => onDescription(event.target.value)}
                 placeholder="Write a short description…"
                 aria-invalid={errors.description ? true : undefined}
@@ -232,6 +259,17 @@ export function SeoPanel({
               Doubles as the card text on the blog index — one field, so the two cannot
               disagree.
             </p>
+            {/* Only once it is over, so the ordinary case stays quiet. It says what
+                happens rather than telling the writer off: the description publishes
+                whole either way, and the only consequence is where a result stops
+                showing it. The preview above draws that cut. */}
+            {description.length > DESCRIPTION_MAX ? (
+              <p className="mt-1 text-[12.5px] text-mut">
+                Published in full. A search result shows roughly the first{' '}
+                {DESCRIPTION_MAX} characters, so the rest is for the reader who
+                opens the page. The field stops at {DESCRIPTION_LIMIT}.
+              </p>
+            ) : null}
             {errors.description ? (
               <p className="mt-1 text-[13px] text-red-600">{errors.description}</p>
             ) : null}
