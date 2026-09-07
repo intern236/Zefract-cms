@@ -69,6 +69,31 @@ export const CONTACT = {
 export const ANALYTICS = {
   gtmId: 'GTM-KX4R5W99',
   /**
+   * Google Search Console ownership token, rendered as
+   * `<meta name="google-site-verification">` by the root layout.
+   *
+   * HERE RATHER THAN IN A DASHBOARD VARIABLE, for exactly the reason gtmId is:
+   * this value is public by definition. It ships in the `<head>` of every page
+   * of every site that uses one, so there is nothing to protect, and an unset
+   * variable in a hosting dashboard is the usual reason a tag silently stops
+   * appearing after a deploy. GOOGLE_SITE_VERIFICATION still overrides it (see
+   * app/layout.tsx), so a second property can be verified without a code change.
+   *
+   * IT CANNOT BE DONE THROUGH GTM ON THIS SITE, which is why the meta tag is
+   * needed at all. Search Console's Google Tag Manager method reads the
+   * container snippet from the page itself, and the half of GTM that survives
+   * without JavaScript is an `<iframe>` in the body (see
+   * components/analytics/google-tag-manager.tsx) — verification does not look
+   * inside a frame, and it requires the token in the document head before the
+   * body opens. The meta tag is the direct method and does not depend on GTM
+   * loading, on consent, or on JavaScript running at all.
+   *
+   * DO NOT REMOVE IT AFTER VERIFICATION SUCCEEDS. Search Console re-checks the
+   * token periodically and revokes access when it disappears, which takes the
+   * property's history with it.
+   */
+  googleSiteVerification: 'pYlrW38hgtc56ttJ90iJlcsZ6MSMPGhZkTMl_6VLO78',
+  /**
    * THERE IS NO CONSENT BANNER, AND THE PRIVACY POLICY SAYS THERE IS.
    *
    * The container above loads on every page for every visitor, immediately, with
