@@ -7,10 +7,15 @@ import { EditorContent, Extension, useEditor, useEditorState, type Editor } from
 import StarterKit from '@tiptap/starter-kit'
 import { Image as TiptapImage } from '@tiptap/extension-image'
 import { Placeholder } from '@tiptap/extension-placeholder'
+import { TableKit } from '@tiptap/extension-table'
 import {
-  Check, ChevronDown, Eye, FileText, FolderOpen, ImageIcon, Rocket, Search, Tag, UserRound,
+  Check, ChevronDown, Code2, Eye, FileText, FolderOpen, HelpCircle, ImageIcon, Rocket, Search,
+  Tag, UserRound,
 } from 'lucide-react'
+import { FaqFields } from '@/components/admin/faq-fields'
+import { HtmlSource } from '@/components/admin/html-source'
 import { FIELD_BASE } from '@/components/forms/field'
+import { Label } from '@/components/ui/label'
 import { AdminBar } from '@/components/admin/admin-bar'
 import { AdminShell, PANEL_TOP } from '@/components/admin/admin-shell'
 import { CategoryField } from '@/components/admin/category-field'
@@ -59,8 +64,12 @@ export type EditorPost = {
   title: string
   slug: string
   description: string
+  /** The standfirst under the headline. Null falls back to `description`. */
+  excerpt: string | null
   category: string | null
   tags: string[]
+  /** Questions published as an accordion and as FAQPage schema. */
+  faqs: { question: string; answer: string }[]
   contentHtml: string
   /** The Cloudinary cover, or null. Legacy MongoDB covers arrive as
    *  `legacyCoverUrl` instead — see the note on the cover panel. */
@@ -84,6 +93,13 @@ export type EditorPost = {
 const TITLE_TARGET = 100
 /** Matches POST_LIMITS.tagCount in lib/blog.ts, which enforces it server-side. */
 const TAG_MAX = 12
+/* The FAQ caps and the introduction's, mirrored from POST_LIMITS for the same
+   reason TAG_MAX is: lib/blog.ts imports the MongoDB driver, so it cannot be
+   imported into a client component. Change one, change the other. */
+const FAQ_MAX = 12
+const FAQ_QUESTION_MAX = 200
+const FAQ_ANSWER_MAX = 900
+const EXCERPT_MAX = 400
 
 /**
  * How long after typing stops before a draft saves itself. Three seconds is
@@ -231,6 +247,8 @@ function retargetImages(editor: Editor, from: string, to: string | null): number
 const ERROR_SECTION: Record<string, string> = {
   title: 'content',
   content: 'content',
+  excerpt: 'content',
+  faqs: 'faq',
   cover: 'cover',
   coverAlt: 'cover',
   coverCaption: 'cover',
@@ -267,8 +285,10 @@ export function PostEditor({
   const [slugTouched, setSlugTouched] = useState(Boolean(post))
   const [slugEditing, setSlugEditing] = useState(false)
   const [description, setDescription] = useState(post?.description ?? '')
+  const [excerpt, setExcerpt] = useState(post?.excerpt ?? '')
   const [category, setCategory] = useState(post?.category ?? '')
   const [tags, setTags] = useState<string[]>(post?.tags ?? [])
+  const [faqs, setFaqs] = useState<{ question: string; answer: string }[]>(post?.faqs ?? [])
   const [coverImage, setCoverImage] = useState<CloudinaryImage | null>(post?.coverImage ?? null)
   const [coverAlt, setCoverAlt] = useState(post?.coverAlt ?? '')
   const [coverCaption, setCoverCaption] = useState(post?.coverCaption ?? '')
@@ -391,12 +411,37 @@ export function PostEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        /* h2/h3 only: the page supplies its own h1, and the sanitiser's
-           allowlist matches exactly this configuration. */
-        heading: { levels: [2, 3] },
+        /* h2 THROUGH h6. The page supplies its own h1 — that is the post's
+           title field, so a second h1 inside the body would give the document
+           two titles — and the sanitiser's allowlist in lib/blog.ts matches
+           exactly this configuration. Widened from [2, 3] so a long article can
+           carry a real hierarchy instead of flattening every subdivision below
+           the second level into bold paragraphs. */
+        heading: { levels: [2, 3, 4, 5, 6] },
         link: { openOnClick: false, autolink: true },
       }),
       TiptapImage.configure({ allowBase64: false }),
+      /**
+       * TABLES, so a comparison stops being pasted in as a screenshot.
+       *
+       * A picture of a table is unreadable on a phone, invisible to search and
+       * to an answer engine, cannot be selected, copied or translated, and has
+       * no alt text worth writing — "a table comparing X and Y" is not the
+       * table. Marked up properly it is scannable, indexable and the kind of
+       * structured content the site's own AEO page sells.
+       *
+       * `resizable: false` ON PURPOSE. Column widths dragged in a 900px admin
+       * panel are a property of that panel, not of the article, and the
+       * sanitiser drops the `colgroup` they are stored in (see lib/blog.ts) —
+       * so leaving the handles on would offer a control whose effect is
+       * discarded on save. The published table sizes itself from its content.
+       *
+       * A HEADER ROW BY DEFAULT: `withHeaderRow` is the TipTap default and is
+       * kept, because a comparison table without header cells gives a screen
+       * reader nothing to associate each figure with, and gives a search engine
+       * no column names to read.
+       */
+      TableKit.configure({ table: { resizable: false } }),
       LinkButtonAttribute,
       Placeholder.configure({ placeholder: 'Start writing your story…' }),
     ],
@@ -508,8 +553,10 @@ export function PostEditor({
         title,
         slug,
         description,
+        excerpt,
         category,
         tags: tags.join(', '),
+        faqs,
         contentHtml: editor.getHTML(),
         authorId,
         coverImage,
@@ -569,7 +616,7 @@ export function PostEditor({
       }
     },
     [
-      editor, post, title, slug, description, category, tags, coverImage,
+      editor, post, title, slug, description, excerpt, category, tags, faqs, coverImage,
       coverAlt, coverCaption, seoTitle, focusKeyword, authorId, router, adopting,
     ]
   )
@@ -726,6 +773,15 @@ export function PostEditor({
        finding it, so it sits with the filing rather than with the index terms. */
     { id: 'author', label: 'Author', icon: UserRound, flagged: false },
     { id: 'tags', label: 'Tags', icon: Tag, flagged: Boolean(errors.tags) },
+    /* After the labelling, before SEO. An FAQ is content the reader sees, so it
+       belongs with the writing rather than in the panel of things written for a
+       crawler — even though publishing it as schema is most of why it is here. */
+    { id: 'faq', label: 'FAQ', icon: HelpCircle, flagged: Boolean(errors.faqs) },
+    /* LAST, ON PURPOSE. It edits the same body the Content panel does, from the
+       other end, and it is the one panel that can replace an article in a
+       keystroke — so it sits at the bottom of the list where nobody lands on it
+       by accident, rather than beside the writing surface it overwrites. */
+    { id: 'html', label: 'HTML', icon: Code2, flagged: false },
     {
       id: 'seo',
       label: 'SEO',
@@ -979,6 +1035,64 @@ export function PostEditor({
             </div>
             {errors.slug ? <p className="mt-1 px-1 text-[12.5px] text-red-600">{errors.slug}</p> : null}
 
+            {/* ---- The introduction ---------------------------------------
+                Between the permalink and the body, which is where it is on the
+                published page: title, then standfirst, then the piece.
+
+                IN THE CONTENT PANEL, NOT THE SEO ONE, and the distinction is the
+                whole reason this field exists. The meta description in SEO is
+                written for a result — front-loaded with search terms, cut near
+                160 characters, read by a stranger deciding whether to click.
+                This is read by someone who has already arrived. The page printed
+                the SEO line here until now, so every post opened with copy aimed
+                at a machine.
+
+                ALWAYS VISIBLE, like the title and permalink above it, rather than
+                behind the section nav: it is part of the document's opening, and
+                a writer settling the first line of a piece should not have to go
+                and find the field. */}
+            <div className={cn('mt-4 rounded-tile border border-line bg-surface p-5', shown('content'))}>
+              <div className="flex items-baseline justify-between gap-3">
+                <Label htmlFor="excerpt" className="text-[13.5px] font-semibold text-head">
+                  Introduction
+                </Label>
+                <span className="font-mono text-[12px] tracking-[0.12em] text-mut-2 uppercase sm:text-[10px]">
+                  Optional
+                </span>
+              </div>
+              <textarea
+                id="excerpt"
+                name="excerpt"
+                value={excerpt}
+                maxLength={EXCERPT_MAX}
+                onChange={(event) => {
+                  setExcerpt(event.target.value)
+                  touch()
+                }}
+                placeholder="The line under the headline — what this piece is about, in your own voice…"
+                aria-invalid={errors.excerpt ? true : undefined}
+                className={cn(FIELD_BASE, 'mt-2 min-h-20 px-4 py-3 text-[14px] leading-relaxed')}
+              />
+              <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <p className="text-[12.5px] text-mut-2">
+                  {excerpt.trim()
+                    ? 'Printed under the title on the post.'
+                    : 'Empty: the meta description is used under the title instead.'}
+                </p>
+                <span
+                  className={cn(
+                    'font-mono text-[11px] tabular-nums',
+                    excerpt.length >= EXCERPT_MAX ? 'text-brand-strong' : 'text-mut-2'
+                  )}
+                >
+                  {excerpt.length}/{EXCERPT_MAX}
+                </span>
+              </div>
+              {errors.excerpt ? (
+                <p className="mt-1 text-[13px] text-red-600">{errors.excerpt}</p>
+              ) : null}
+            </div>
+
             {/* ---- Panels ---------------------------------------------- */}
 
             {/* Content: the writing surface. */}
@@ -1119,6 +1233,54 @@ export function PostEditor({
                   }}
                 />
               </div>
+            </Panel>
+
+            {/* FAQ: the questions this post answers, as an accordion on the page
+                and as FAQPage structured data. */}
+            {/* FULL WIDTH, like Cover, HTML and SEO, and unlike Category, Author
+                and Tags. That split is not arbitrary: those three hold one short
+                control each, and a lone select stretched across 900px looks
+                broken, so they are capped. This panel holds a repeating card
+                with a long question and a longer answer in it — the same shape
+                as the cover panel's two columns — and capping it at max-w-2xl
+                left the rows stopping two thirds of the way across with dead
+                space beside every one of them.
+
+                The measure of the PROSE inside is a separate decision and stays:
+                a paragraph of guidance set across the full panel would run to
+                about 110 characters a line, which is past the point it is
+                comfortable to read. Boxes fill, sentences do not. */}
+            <Panel id={panelId('faq')} label="FAQ" hidden={section !== 'faq'}>
+              <FaqFields
+                faqs={faqs}
+                max={FAQ_MAX}
+                questionMax={FAQ_QUESTION_MAX}
+                answerMax={FAQ_ANSWER_MAX}
+                error={errors.faqs}
+                onChange={(next) => {
+                  setFaqs(next)
+                  touch()
+                }}
+              />
+            </Panel>
+
+            {/* HTML: the body as markup, for pasting structure the toolbar has
+                no button for. Parsed into the document, never executed — see the
+                note in html-source.tsx for why that distinction is the whole
+                design of this panel. */}
+            <Panel id={panelId('html')} label="HTML" hidden={section !== 'html'}>
+              {/* KEYED ON WHETHER THE PANEL IS OPEN, so opening it remounts the
+                  component and it re-reads the document. Every panel here stays
+                  mounted — that is what keeps the body's caret and undo history
+                  alive when you look at Tags and come back — but this one has to
+                  show the post as it is NOW rather than as it was when the editor
+                  first loaded. A remount is how it gets that without a setState
+                  in an effect; see the note in html-source.tsx. */}
+              <HtmlSource
+                key={section === 'html' ? 'html-open' : 'html-closed'}
+                editor={editor}
+                onApply={touch}
+              />
             </Panel>
 
             {/* SEO: everything a search engine is handed, and how it scores. */}

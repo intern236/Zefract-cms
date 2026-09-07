@@ -25,8 +25,10 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
     title: post.title,
     slug: post.slug,
     description: post.description,
+    excerpt: post.excerpt,
     category: post.category,
     tags: post.tags,
+    faqs: post.faqs,
     contentHtml: post.contentHtml,
     coverImage: post.coverImage,
     /* Only for a post whose cover predates Cloudinary — the editor shows it and

@@ -348,6 +348,32 @@ export const PROCESS: ProcessStep[] = [
   },
 ];
 
+/**
+ * The call to action that sits inside a blog post, halfway down.
+ *
+ * SEPARATE COPY FROM `CTA` BELOW, DELIBERATELY. That one closes a page: the
+ * reader has finished, and it can afford a heading, a standfirst, four buttons
+ * and a note. This interrupts one — it is read by somebody mid-article who has
+ * not asked for it — so it is one line, one button, and out of the way. Reusing
+ * the closing band here would put the site's largest block in the middle of a
+ * paragraph run.
+ *
+ * IT ALSO HAS TO SAY SOMETHING DIFFERENT. The band at the foot asks for the
+ * project; this catches the reader at the moment the article has just made them
+ * think about their own situation, which is a smaller and more specific ask.
+ *
+ * IN THE CONTENT LAYER so the client can rewrite it without a code change, like
+ * every other piece of copy on the site. A per-post override would be the
+ * natural extension if one CTA ever stops fitting every subject — it would be a
+ * field on the post and a fallback to this.
+ */
+export const POST_CTA = {
+  heading: "Recognise any of this in your own numbers?",
+  body: "Send us what you have. You get scope, a timeline and a number back within three working days.",
+  label: "Start a project",
+  href: "/contact",
+} as const;
+
 export const CTA = {
   eyebrow: "Next step",
   heading: ["Ready when you have a brief.", "Or half of one."],

@@ -4,8 +4,10 @@ import { PageHero } from '@/components/ui/page-hero'
 import { Container, Section } from '@/components/ui/section'
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
 import { CtaBand } from '@/components/sections/cta-band'
+import { TagLink } from '@/components/ui/tag-link'
 import {
   getPublishedPosts,
+  getPublishedTags,
   formatPostDate,
   coverImageUrl,
   coverImageSrcSet,
@@ -69,6 +71,7 @@ export default async function BlogPage() {
   const posts = await getPublishedPosts()
   const [featured, ...rest] = posts
   const featuredCover = featured ? coverImageUrl(featured) : null
+  const tags = await getPublishedTags()
 
   return (
     <>
@@ -196,6 +199,44 @@ export default async function BlogPage() {
               ) : null}
             </>
           )}
+
+          {/* ---- Browse by tag --------------------------------------------
+              WHY THE TAGS LIVE HERE AND NOT ON THE CARDS. Each card above is a
+              single <Link> wrapping its whole surface, which is the right
+              behaviour for a card grid — the entire thing is one target. It also
+              means a tag inside a card cannot be a link: an anchor nested in an
+              anchor is invalid HTML and is announced as one control, the same
+              constraint the admin post list documents about a delete button
+              inside a row link. Making them clickable there would mean
+              dismantling every card into a stretched-link layout and rebuilding
+              the hover and focus behaviour that .card-pop currently gives them
+              for free.
+
+              A row of its own is the better answer anyway: it gives every tag on
+              the blog one predictable place, rather than scattering the same
+              handful across a dozen cards and asking a reader to spot a
+              repeated one. The chips on the cards stay as labels, which is what
+              they honestly are.
+
+              Below the posts, because this is the second question. Someone
+              arriving at the index wants to see what is new; browsing a subject
+              is what they do once nothing on the page has caught them. */}
+          {tags.length > 0 ? (
+            <Reveal className="mt-16">
+              <div className="border-t border-line pt-8">
+                <h2 className="font-mono text-[11px] tracking-[0.2em] text-mut uppercase">
+                  Browse by tag
+                </h2>
+                <ul className="mt-5 flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <li key={tag.slug}>
+                      <TagLink tag={tag.tag} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+          ) : null}
         </Container>
       </Section>
 

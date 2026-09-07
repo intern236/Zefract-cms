@@ -4,7 +4,12 @@ import { FIELD_BASE } from '@/components/forms/field'
 import { ImagePreview } from '@/components/media/image-preview'
 import { ImageUploader } from '@/components/media/image-uploader'
 import { Label } from '@/components/ui/label'
-import type { CloudinaryImage } from '@/lib/cloudinary/types'
+import {
+  RECOMMENDED_COVER,
+  formatBytes,
+  MAX_UPLOAD_BYTES,
+  type CloudinaryImage,
+} from '@/lib/cloudinary/types'
 import { cn } from '@/lib/utils'
 
 /**
@@ -30,6 +35,18 @@ import { cn } from '@/lib/utils'
 
 const ALT_MAX = 125
 const CAPTION_MAX = 125
+
+/**
+ * The line inside the drop zone.
+ *
+ * THE DIMENSIONS LEAD, because they are the part that changes what the writer
+ * does. Format and size only matter once a file has been rejected; the ratio
+ * matters while they are still choosing which image to use, and it is the one
+ * thing that decides whether the cover they picked survives the crop intact.
+ */
+const COVER_HINT =
+  `${RECOMMENDED_COVER.width}x${RECOMMENDED_COVER.height} (16:9) · ` +
+  `PNG, JPG or WEBP · Max ${formatBytes(MAX_UPLOAD_BYTES)}`
 
 /**
  * The image itself: an uploader when there is none, a preview when there is.
@@ -75,7 +92,13 @@ export function CoverPicker({
           across.
         </p>
         <div className="mt-3">
-          <ImageUploader kind="cover" onUploaded={onUploaded} label="Replace cover image" disabled={busy} />
+          <ImageUploader
+            kind="cover"
+            onUploaded={onUploaded}
+            label="Replace cover image"
+            hint={COVER_HINT}
+            disabled={busy}
+          />
         </div>
         {error ? <p className="mt-2 text-[13px] text-red-600">{error}</p> : null}
       </div>
@@ -84,10 +107,17 @@ export function CoverPicker({
 
   return (
     <div>
-      <ImageUploader kind="cover" onUploaded={onUploaded} disabled={busy} />
+      <ImageUploader kind="cover" onUploaded={onUploaded} hint={COVER_HINT} disabled={busy} />
       <p className="mt-2.5 text-[12.5px] text-mut-2">
         Optional. A post without one gets a full-width text card on the blog index rather than
         an empty space.
+      </p>
+      {/* Says what happens to an image that is not 16:9, so the ratio above reads as
+          advice rather than a requirement someone has to go and satisfy in Photoshop
+          before they can publish. */}
+      <p className="mt-1.5 text-[12.5px] text-mut-2">
+        Another shape still works — it is cropped to 16:9 around the subject, and the
+        same crop is used on the post, the blog index and the share card.
       </p>
       {error ? <p className="mt-2 text-[13px] text-red-600">{error}</p> : null}
     </div>
