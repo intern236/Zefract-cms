@@ -5,18 +5,25 @@ import { PageHero } from '@/components/ui/page-hero'
 import { Container, Section } from '@/components/ui/section'
 import { Reveal } from '@/components/motion/reveal'
 import { CtaBand } from '@/components/sections/cta-band'
+import { FaqSection } from '@/components/sections/faq'
+import { PostCta } from '@/components/sections/post-cta'
 import { AuthorByline } from '@/components/ui/author-byline'
+import { AuthorCard } from '@/components/ui/author-card'
+import { TagLink } from '@/components/ui/tag-link'
 import { BlogPostingSchema } from '@/lib/schema'
 import { getAuthorById } from '@/lib/authors'
 import {
   getPublishedPost,
   getPublishedPosts,
+  getPublishedPostsByAuthor,
   formatPostDate,
   coverImageUrl,
   coverImageSrcSet,
+  renderablePostHtml,
+  splitForMidCta,
 } from '@/lib/blog'
 import { ogUrl } from '@/lib/cloudinary/url'
-import { clampDescription, pageOpenGraph } from '@/lib/seo'
+import { pageOpenGraph } from '@/lib/seo'
 
 /**
  * One blog post.
@@ -39,7 +46,29 @@ export async function generateMetadata({
   const post = await getPublishedPost(slug)
   if (!post) return {}
 
-  const description = clampDescription(post.description)
+  /**
+   * THE AUTHOR'S OWN WORDS, PUBLISHED WHOLE. This used to be
+   * `clampDescription(post.description)`, which cut every post's meta
+   * description at 155 characters on a word boundary — so a description written
+   * deliberately in the editor, inside the limit the editor showed, arrived in
+   * the page source with its last clause missing and nothing anywhere saying so.
+   *
+   * THE CLAMP WAS NEVER MEANT FOR THIS FIELD. lib/seo.ts says so in its own
+   * opening: the helpers exist because the other descriptions on this site are
+   * "built from body copy, so their length is whatever the sentence happened to
+   * be rather than anything anyone chose". That is true of a pillar blurb and a
+   * case study's problem statement, which is why those call sites keep it. A
+   * blog post's description is typed into a field by a person, against a
+   * character counter, for exactly this purpose. Trimming it is overruling them.
+   *
+   * WHAT REPLACES THE CLAMP IS ADVICE, NOT SILENCE. The SEO panel still measures
+   * the description against what a result actually displays, shows the cut in
+   * its preview, and flags it in the checks — so the writer sees the trade
+   * before publishing and decides. A long description is indexed perfectly well;
+   * only its tail is dropped from the snippet, and Google frequently rewrites
+   * the snippet regardless.
+   */
+  const description = post.description
   const cover = coverImageUrl(post)
   /* The SEO title where the author set one, the headline otherwise. This is the
      only place the two differ: the <h1> on the page is always post.title. */
@@ -86,10 +115,18 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   /* Two or three other recent posts, excluding this one. Recency stands in for
      relatedness until there are enough posts for tags to mean anything. */
   const more = (await getPublishedPosts()).filter((p) => p.slug !== post.slug).slice(0, 3)
+  /* Split once, here, so both halves come from the same transformed string —
+     doing it per-branch in the markup would run renderablePostHtml twice and
+     leave the two able to disagree. Null on a short post, which is the signal to
+     render the article in one piece. */
+  const midCta = splitForMidCta(renderablePostHtml(post.contentHtml))
   /* Null for a post with no author, and null for one whose author has since been
      deleted — both fall back to the company byline, which is what the page
      showed before authors existed. */
   const author = post.authorId ? await getAuthorById(post.authorId) : null
+  /* Only for a named author, and only to put a number on the link out of the
+     card — a post published under the company has no profile to count. */
+  const authorPostCount = author ? (await getPublishedPostsByAuthor(author.id)).length : 0
 
   return (
     <>
@@ -107,7 +144,22 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
            post and the fastest way for a reader to place it. */
         eyebrow={`${post.category ? `${post.category} · ` : ''}${formatPostDate(post.publishedAt)} · ${post.readingMinutes} min read`}
         heading={post.title}
-        sub={post.description}
+        /**
+         * THE INTRODUCTION, NOT THE META DESCRIPTION.
+         *
+         * This slot used to print `post.description`, which is written for a
+         * search result: front-loaded with the terms someone would type, capped
+         * near what a snippet shows, and addressed to a stranger deciding
+         * whether to click. Under the headline it is being read by someone who
+         * has already decided — and a line written to win a click reads, in that
+         * position, like the page repeating its own listing back at you.
+         *
+         * `excerpt` is the standfirst a writer composes for exactly this spot.
+         * Falling back to the description keeps every post published before the
+         * field existed looking precisely as it did, so nothing needed migrating
+         * — see the note on BlogPost.excerpt.
+         */
+        sub={post.excerpt || post.description}
         trail={[
           { name: 'Home', href: '/' },
           { name: 'Insights', href: '/blog' },
@@ -117,21 +169,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       <Section spacing="tight" className="pb-4">
         <Container>
-          {/* UNDER THE HERO RATHER THAN INSIDE IT. <PageHero> takes an eyebrow,
-              a heading and a standfirst, and the byline is none of the three —
-              threading a photograph through it would have meant a fourth slot
-              every other page then ignores. Here it reads the way a byline
-              reads in print: after the headline and the standfirst, immediately
-              before the piece itself.
-
-              The date and reading time stay in the hero's eyebrow and are NOT
-              repeated here — the byline answers who, the eyebrow answers when. */}
-          <Reveal>
-            <div className="mx-auto flex max-w-[68ch] items-center justify-between gap-4 border-b border-line pb-6">
-              <AuthorByline author={author} size="lg" />
-            </div>
-          </Reveal>
-
           {cover ? (
             <Reveal>
               {/* NO CAPTION UNDER THE COVER, by request: on the page it read as
@@ -144,7 +181,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   No <figure> either, therefore: a figure with no caption is a
                   wrapper that adds a semantic promise the markup no longer
                   keeps. */}
-              <div className="relative aspect-21/9 overflow-hidden rounded-card bg-ink">
+              {/* 16:9, WHERE THIS WAS 21:9 AND EVERYTHING ELSE WAS NOT.
+                  Cloudinary crops every cover to `ar_16:9` (see COVER_CROP), and
+                  the blog index, the author profile and the work cards all render
+                  that ratio. This one box asked for 21:9, so `object-cover` threw
+                  away roughly a quarter of the height of an image that had already
+                  been cropped once — a cover looked right on the card it was
+                  chosen from and lost its top and bottom on the page it led to.
+                  Matching the ratio means the crop happens once, at Cloudinary,
+                  with content-aware gravity, and the page shows the whole of it. */}
+              <div className="relative aspect-16/9 overflow-hidden rounded-card bg-ink">
                   {/* The author's alt where they wrote one, the title as a
                       fallback: a poor description beats none at all. Plain img
                       over the DB-serving route; the wrapper owns the aspect
@@ -165,37 +211,118 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             </Reveal>
           ) : null}
 
-          <Reveal className={cover ? 'mt-14' : undefined}>
+          {/* THE BYLINE SITS BELOW THE BANNER NOW, where it used to sit above it
+              in a bordered strip of its own — a `justify-between` row with one
+              child, floating between the headline and the cover, which read as a
+              fragment nobody had finished placing. Directly over the first
+              paragraph is where a byline goes in print and where a reader looks
+              for one, and it now introduces the text rather than interrupting
+              the run-up to it.
+
+              The date and reading time stay in the hero's eyebrow and are still
+              NOT repeated here — the byline answers who, the eyebrow answers
+              when. The fuller "written by" card is at the foot of the article. */}
+          <Reveal className={cover ? 'mt-12' : undefined}>
+            <div className="mx-auto max-w-[68ch] border-b border-line pb-6">
+              <AuthorByline author={author} size="lg" />
+            </div>
+          </Reveal>
+
+          <Reveal className="mt-10">
             {/* The stored HTML has already been through sanitizePostHtml on
                 every save — the allowlist in lib/blog.ts is the reason this
                 dangerouslySetInnerHTML is not dangerous. Styling comes from
                 .blog-prose in globals.css, the same class the admin editor
-                types into, so the page IS the preview. */}
-            <div
-              className="blog-prose mx-auto max-w-[68ch]"
-              dangerouslySetInnerHTML={{ __html: post.contentHtml }}
-            />
+                types into, so the page IS the preview.
+
+                renderablePostHtml wraps each table in its own scroll container,
+                which is the one thing the stored markup cannot carry itself —
+                see the note on that function for why the wrapper is added here
+                rather than saved into the post.
+
+                SPLIT IN TWO WHERE THE POST IS LONG ENOUGH, so a call to action
+                can sit at the halfway point. `splitForMidCta` returns null for a
+                short post, or one with no balanced boundary near the middle, and
+                the article then renders exactly as it did before — one block,
+                no interruption. Each half is a complete run of top-level
+                elements, which is what makes it safe to hand either to
+                dangerouslySetInnerHTML. */}
+            {midCta ? (
+              <>
+                <div
+                  className="blog-prose mx-auto max-w-[68ch]"
+                  dangerouslySetInnerHTML={{ __html: midCta.before }}
+                />
+                <PostCta className="my-12" />
+                <div
+                  className="blog-prose mx-auto max-w-[68ch]"
+                  dangerouslySetInnerHTML={{ __html: midCta.after }}
+                />
+              </>
+            ) : (
+              <div
+                className="blog-prose mx-auto max-w-[68ch]"
+                dangerouslySetInnerHTML={{ __html: renderablePostHtml(post.contentHtml) }}
+              />
+            )}
 
             {post.tags.length > 0 ? (
               <div className="mx-auto mt-12 flex max-w-[68ch] flex-wrap items-baseline gap-x-3 gap-y-2">
                 <span className="font-mono text-[11px] tracking-[0.2em] text-mut-2 uppercase">
                   Tagged
                 </span>
+                {/* LINKS NOW, WHERE THESE WERE LABELS. A tag that is printed and
+                    does nothing is the worst of both: it looks like a control and
+                    reads as a promise of more on the subject. <TagLink> points each
+                    one at its archive.
+
+                    SAFE TO LINK HERE, WHICH IS NOT TRUE EVERYWHERE. This row sits in
+                    ordinary page flow, so an anchor is just an anchor. The cards on
+                    the blog index are themselves one big anchor, and a link inside a
+                    link is invalid HTML — see the note there. */}
                 <ul className="flex flex-wrap gap-2">
                   {post.tags.map((tag) => (
-                    <li
-                      key={tag}
-                      className="rounded-full border border-line bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-head"
-                    >
-                      {tag}
+                    <li key={tag}>
+                      <TagLink tag={tag} />
                     </li>
                   ))}
                 </ul>
               </div>
             ) : null}
           </Reveal>
+
+          {/* AFTER THE TAGS, BEFORE ANYTHING THAT LEADS AWAY. The reader has just
+              finished the piece, which is the one moment they care who wrote it —
+              so the card goes here rather than at the very bottom under the
+              related posts, where it would be competing with three links out.
+
+              Renders nothing for a post published under the company byline; see
+              the note on <AuthorCard>. */}
+          <Reveal className="mt-12">
+            <div className="mx-auto max-w-[68ch]">
+              <AuthorCard author={author} postCount={authorPostCount} />
+            </div>
+          </Reveal>
         </Container>
       </Section>
+
+      {/* THE POST'S OWN FAQs, AS AN ACCORDION AND AS FAQPage JSON-LD.
+          <FaqSection> already emits that schema for the home page and every
+          service page, and returns null on an empty list — so reusing it here
+          gives a blog post the same structured answers without a second
+          renderer, a second set of markup or a second copy of the schema to keep
+          in step. That reuse is the whole implementation.
+
+          ABOVE "More from the blog", deliberately: an unanswered question is
+          what stops a reader acting, and it should be settled before the page
+          starts offering them somewhere else to go. Same ordering, and the same
+          reasoning, as the service pages. */}
+      <FaqSection
+        faqs={post.faqs}
+        eyebrow="FAQ"
+        heading="Frequently asked questions"
+        spacing="compact"
+      />
 
       {more.length > 0 ? (
         <Section spacing="compact">

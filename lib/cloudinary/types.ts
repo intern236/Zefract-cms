@@ -85,6 +85,29 @@ export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 export const ACCEPTED_FORMATS = ['jpg', 'jpeg', 'png', 'webp'] as const
 
+/**
+ * The cover size to supply, stated once and shown in the uploader.
+ *
+ * 16:9, WHICH IS WHAT EVERY SURFACE ALREADY USES. `COVER_CROP` in
+ * lib/cloudinary/url.ts crops to `ar_16:9`, the blog index cards render 16:9,
+ * the author page cards render 16:9, and the post page now does too. An upload
+ * at this ratio is therefore passed through rather than cropped, so the writer
+ * sees on the page exactly the frame they chose.
+ *
+ * 1280x720 RATHER THAN SOMETHING LARGER. 1280 is the widest entry in
+ * COVER_WIDTHS that a layout actually requests — the 1920 above it exists for a
+ * 2x wide desktop — so a source at 1280 is the smallest file that never has to
+ * be upscaled at the sizes the site asks for. Supplying more costs upload time
+ * and storage and changes nothing a reader sees.
+ *
+ * IT IS A RECOMMENDATION, NOT A CHECK, and deliberately not enforced. Cloudinary
+ * crops whatever arrives to 16:9 with content-aware gravity, so an odd-shaped
+ * image still produces a usable cover; refusing it would block a post over a
+ * picture that was going to work. What the guidance buys is the writer knowing
+ * which part of their image will survive before they upload it.
+ */
+export const RECOMMENDED_COVER = { width: 1280, height: 720 } as const
+
 /** For the file input's `accept`, and for the first-pass check on the File. The
  *  authoritative check is Cloudinary's own `allowed_formats`, which inspects the
  *  bytes rather than trusting a MIME string the browser was handed. */

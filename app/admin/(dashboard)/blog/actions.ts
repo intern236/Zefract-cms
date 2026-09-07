@@ -16,6 +16,7 @@ import {
   sanitizePostHtml,
   slugTaken,
   slugify,
+  tagSlug,
   type BlogPostStatus,
 } from '@/lib/blog'
 
@@ -42,8 +43,13 @@ export type PostPayload = {
   title: unknown
   slug: unknown
   description: unknown
+  /** The on-page standfirst. Empty means the description stands in for it. */
+  excerpt: unknown
   /** Comma-separated, as typed. Parsed and capped here. */
   tags: unknown
+  /** `{ question, answer }[]` from the FAQ panel. Coerced entry by entry below,
+   *  because this arrives over HTTP like everything else. */
+  faqs: unknown
   category: unknown
   contentHtml: unknown
   /** The author's id, or '' for none. Validated against the collection before
@@ -106,6 +112,44 @@ function asCloudinaryImage(value: unknown): CloudinaryImage | null {
   }
 }
 
+/**
+ * The FAQ list, coerced and capped.
+ *
+ * SAME RULE AS asCloudinaryImage BELOW: an action is an HTTP endpoint, so
+ * nothing arriving here may be assumed to have the shape the editor sends.
+ * Every field is coerced to a string, an entry missing either half is dropped
+ * rather than stored, and the count is capped so a hand-crafted request cannot
+ * attach a thousand questions to a post.
+ *
+ * DROPPED, NOT REJECTED, for an incomplete entry. A half-typed question is a
+ * normal state to leave the editor in, and failing the whole save over one empty
+ * answer would hold the writing hostage to it. The panel shows the writer which
+ * rows will not be published.
+ */
+function asFaqs(value: unknown): { question: string; answer: string }[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .flatMap((entry) => {
+      if (!entry || typeof entry !== 'object') return []
+      const raw = entry as Record<string, unknown>
+      const question = asString(raw.question)
+      const answer = asString(raw.answer)
+      return question && answer ? [{ question, answer }] : []
+    })
+    .slice(0, POST_LIMITS.faqCount)
+}
+
+/**
+ * Slugs a post may not take, because a route already owns the path.
+ *
+ * `tag` IS THE ONE THAT MATTERS: /blog/tag/<tag> is the archive, so a post
+ * slugged `tag` would sit at /blog/tag, one segment above a page that is not
+ * about it. Next would still serve it — there is no page.tsx at that level, so
+ * it falls through to /blog/[slug] — which is worse than a collision, because it
+ * works and reads as a mistake.
+ */
+const RESERVED_SLUGS = new Set(['tag'])
+
 export async function savePost(payload: PostPayload): Promise<SaveResult> {
   if (!(await verifySession())) {
     return { ok: false, errors: { form: 'Your session has expired. Sign in again.' } }
@@ -113,6 +157,8 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
 
   const title = asString(payload.title)
   const description = asString(payload.description)
+  const excerpt = asString(payload.excerpt)
+  const faqs = asFaqs(payload.faqs)
   const category = asString(payload.category)
   const coverAlt = asString(payload.coverAlt)
   const coverCaption = asString(payload.coverCaption)
@@ -139,6 +185,18 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
     errors.title = `Longer than we store (${POST_LIMITS.title} characters).`
   }
   if (!slug) errors.slug = 'The slug is empty once tidied. Try different words.'
+  else if (RESERVED_SLUGS.has(slug)) {
+    errors.slug = `“${slug}” is reserved for the tag archive. Try different words.`
+  }
+  if (excerpt.length > POST_LIMITS.excerpt) {
+    errors.excerpt = `Keep the introduction under ${POST_LIMITS.excerpt} characters.`
+  }
+  if (faqs.some((faq) => faq.question.length > POST_LIMITS.faqQuestion)) {
+    errors.faqs = `Keep each question under ${POST_LIMITS.faqQuestion} characters.`
+  }
+  if (faqs.some((faq) => faq.answer.length > POST_LIMITS.faqAnswer)) {
+    errors.faqs = `Keep each answer under ${POST_LIMITS.faqAnswer} characters.`
+  }
   if (!description) errors.description = 'Write the one-sentence description — it is the search snippet and the card text.'
   else if (description.length > POST_LIMITS.description) {
     errors.description = `Longer than we store (${POST_LIMITS.description} characters).`
@@ -254,6 +312,11 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
     slug: finalSlug,
     title,
     description,
+    /* Null rather than '' so lib/blog.ts reads it back as absent and the page's
+       `excerpt || description` fallback fires, which is what a cleared field
+       should do: go back to the behaviour the post had before. */
+    excerpt: excerpt || null,
+    faqs,
     contentHtml,
     /* Alt and caption travel INSIDE the asset record, so the whole image is one
        self-describing object — which is the shape a Media Library will want to
@@ -335,6 +398,15 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
   revalidatePath('/blog')
   revalidatePath(`/blog/${finalSlug}`)
   if (existing && existing.slug !== finalSlug) revalidatePath(`/blog/${existing.slug}`)
+  /* THE UNION OF THE OLD AND NEW TAGS, not just the new ones. Removing a tag has
+     to refresh the archive the post is leaving as well as the ones it stays in,
+     or it goes on listing a post that no longer carries it. A Set because a tag
+     kept through the edit appears in both lists. */
+  for (const slug of new Set(
+    [...(existing?.tags ?? []), ...tags].map(tagSlug).filter(Boolean)
+  )) {
+    revalidatePath(`/blog/tag/${slug}`)
+  }
   revalidatePath('/sitemap.xml')
 
   return { ok: true, id, slug: finalSlug, status, warning }
@@ -383,6 +455,11 @@ export async function deletePost(id: string): Promise<DeleteResult> {
 
   revalidatePath('/blog')
   revalidatePath(`/blog/${post.slug}`)
+  /* Every archive the post appeared in. A deleted post left listed on a tag page
+     is a link to a 404, which is the one thing a tag archive must not produce. */
+  for (const slug of new Set(post.tags.map(tagSlug).filter(Boolean))) {
+    revalidatePath(`/blog/tag/${slug}`)
+  }
   revalidatePath('/sitemap.xml')
   return { ok: true }
 }
