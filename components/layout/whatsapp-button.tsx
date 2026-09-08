@@ -50,6 +50,12 @@ export function WhatsAppButton() {
   return (
     <a
       href={channel.href}
+      /* How globals.css finds this button to clear it out of the consent bar's way — the
+         same arrangement, and the same reason, as [data-to-top] on <BackToTop>. An
+         attribute rather than a class selector, so the coupling is greppable and survives
+         any restyling of the classes below. See <ConsentBanner> for why it hides rather
+         than moves. */
+      data-whatsapp
       /* NOT the channel's own `ariaLabel`. That one reads "Chat with Zefract on WhatsApp,
          +91 93114 41557", which is right for the footer row where the visible text is a bare
          number. Here the visible text is "Chat with us", and WCAG 2.2 SC 2.5.3 (Label in

@@ -8,8 +8,9 @@ import type { ComponentProps } from 'react'
  * comp's treatment (mono uppercase, 999px radius, lift on hover) is specific
  * enough that overriding Button everywhere would be noisier than owning it.
  *
- * Min height is 44px in every size, which clears WCAG 2.2 SC 2.5.8 (Target Size)
- * with room to spare.
+ * Min height is 44px in every size but `mini`, which clears WCAG 2.2 SC 2.5.8
+ * (Target Size, 24px at AA) with room to spare and meets SC 2.5.5 at AAA as well.
+ * `mini` trades the second of those away on purpose and says so at its own entry.
  *
  * Deliberately NOT a client component: labels render as plain text, so there is no
  * behaviour here that needs the browser. It stays a shared module, which means a pill
@@ -70,6 +71,25 @@ const pill = cva(
          * width. Here the whole point is that neither pill does.
          */
         pair: 'px-3.5 py-3.5 text-[11px] tracking-[0.1em] sm:px-7 sm:py-[17px] sm:text-xs sm:tracking-[0.14em]',
+        /**
+         * The smallest this button gets: for a control that is furniture rather than a
+         * destination. The consent banner is the case, and so far the only one — a card
+         * that has to sit in a corner of every page without owning it, where a 44px pill
+         * makes the whole panel read as a promotion.
+         *
+         * 36px, WHICH IS A DELIBERATE STEP DOWN FROM AAA. Every other size clears WCAG 2.2
+         * SC 2.5.5 (Target Size, Enhanced) at 44px; this one does not, and it is the same
+         * trade <BackToTop> already documents for its 36px disc. It still clears SC 2.5.8
+         * at AA by half again, so it is a preference given up rather than a requirement
+         * missed. Do not reach for it to squeeze a primary action into a tight layout: if a
+         * CTA does not fit, the layout is the thing that is wrong.
+         *
+         * NO RESPONSIVE STEP-UP, unlike `pair` and `compact`. Those shrink for small
+         * screens and return to the default when there is room. This size is not a
+         * concession to width; it is what the control should be at every width, so growing
+         * it at sm would undo the only reason to have it.
+         */
+        mini: 'min-h-9 px-4 py-2 text-[10.5px] tracking-[0.1em]',
       },
     },
     defaultVariants: { variant: 'ink', size: 'default' },

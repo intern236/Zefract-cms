@@ -93,26 +93,76 @@ export const ANALYTICS = {
    * property's history with it.
    */
   googleSiteVerification: 'pYlrW38hgtc56ttJ90iJlcsZ6MSMPGhZkTMl_6VLO78',
+} as const
+
+/**
+ * The cookie banner's words. The mechanism is in lib/consent.ts; this is what it says.
+ *
+ * IT EXISTS BECAUSE THE PRIVACY POLICY ALREADY SAID IT DID. What stood here until now was
+ * a placeholder recording a gap: the container above loaded on every page for every
+ * visitor, immediately, with nothing in front of it, while section 05 of the policy the
+ * client supplied stated the opposite in four separate sentences — that non-essential
+ * cookies are off by default, that consent is collected on first visit, that it can be
+ * withdrawn from a "Cookie settings" link in the footer, and that Global Privacy Control
+ * signals are honoured. A policy describing controls a site does not have is not a missing
+ * feature; it is an untrue statement in the one document a regulator reads first.
+ *
+ * All four are now real, and each has an owner: the default-denied Consent Mode signals in
+ * components/analytics/google-tag-manager.tsx, the banner in
+ * components/layout/consent-banner.tsx, the withdrawal control in
+ * components/layout/cookie-settings-button.tsx, and the GPC check in lib/consent.ts.
+ *
+ * THE COPY IS HERE RATHER THAN IN THE COMPONENT because these sentences make the same
+ * claims section 05 does, and the two have to be edited by someone who can see both. Change
+ * what the site actually stores and this copy is wrong; change this copy and section 05 may
+ * be. There is no version of that which is safe to leave buried in a JSX literal.
+ *
+ * BOTH ANSWERS ARE OFFERED WITH EQUAL WEIGHT, which is a legal constraint and not a taste
+ * one. Making refusal harder to find or harder to click than acceptance is the specific
+ * dark pattern the EDPB names in its deceptive-design guidelines and the one enforcement
+ * actions have repeatedly turned on. The two buttons are the same size, side by side, in
+ * that order. Anyone restyling this should keep it that way.
+ */
+export const CONSENT = {
+  heading: 'Cookies on this site',
   /**
-   * THERE IS NO CONSENT BANNER, AND THE PRIVACY POLICY SAYS THERE IS.
+   * TWO LINES, AND THAT IS THE BRIEF. This sits in a card in the corner of every page, and
+   * a notice nobody reads is worse than a short one that leaves detail out: the detail is
+   * a click away in section 05 of the privacy policy, which the card links to and which is
+   * where the full cookie table actually lives. An earlier draft here named what the
+   * analytics tell us and how campaigns are attributed, ran to four lines on a phone, and
+   * made the panel tall enough to read as an advert.
    *
-   * The container above loads on every page for every visitor, immediately, with
-   * no consent gate in front of it — see components/analytics/google-tag-manager.tsx,
-   * which renders unconditionally from the root layout. Section 05 of the policy
-   * the client supplied states the opposite in four separate sentences: that
-   * non-essential cookies are off by default, that consent is collected on first
-   * visit, that it can be withdrawn from a "Cookie settings" link in the footer,
-   * and that Global Privacy Control signals are honoured. None of that is built.
+   * WHAT IT MUST STILL SAY, however short it gets: that necessary cookies are not optional,
+   * that the rest need permission, and roughly what the rest are for. Drop any of those
+   * three and the banner stops being informed consent.
    *
-   * That gap is the reason this placeholder exists rather than a comment. A
-   * privacy policy describing controls a site does not have is not a missing
-   * feature; it is a statement that is not true, in the one document a regulator
-   * reads first. It has to be closed before launch in one of two ways — build the
-   * banner, or have the client amend section 05 to describe what the site does.
-   *
-   * `npm run check:todos` reports it until then. Nothing renders it.
+   * No em dashes: the house rule for published copy. Comments are free to use them.
    */
-  consentBanner: TODO('cookie consent banner'),
+  body: 'Necessary cookies keep the site running. Analytics and advertising cookies are set only if you allow them.',
+  /* Rendered in the SAME paragraph as the body, in a dimmer colour, followed by the policy
+     link. Three stacked text blocks were most of what made the first version read as a
+     panel rather than a notice; one paragraph with two weights in it reads as a sentence.
+     The footer route is named because the policy names it, and a promise a visitor cannot
+     find is the same as one that was never made. */
+  withdrawal: 'You can change this any time from Cookie settings in the footer.',
+  accept: 'Accept all',
+  reject: 'Reject all',
+  cancel: 'Cancel',
+  /* Shown only when the banner has been reopened from the footer, so the visitor can see
+     what they are changing rather than guessing at it. */
+  current: {
+    granted: 'Right now you allow analytics and advertising cookies.',
+    denied: 'Right now only necessary cookies are on.',
+    /* GPC is a browser-level instruction rather than a choice made on this site, so it is
+       described as one. See globalPrivacyControl() in lib/consent.ts. */
+    gpc: 'Your browser is sending a Global Privacy Control signal, so non-essential cookies are off.',
+  },
+  policyLabel: 'Privacy policy',
+  policyHref: '/privacy',
+  /* The footer control, and the accessible name the banner is announced by. */
+  settingsLabel: 'Cookie settings',
+  regionLabel: 'Cookie consent',
 } as const
 
 /**

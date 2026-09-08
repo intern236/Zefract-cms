@@ -4,8 +4,28 @@ import { getDb, BLOG_COLLECTION } from '@/lib/mongodb'
 import type { CloudinaryImage } from '@/lib/cloudinary/types'
 import { coverSrcSet, coverUrl, isStoredImageSrc } from '@/lib/cloudinary/url'
 import { slugify } from '@/lib/slug'
+/**
+ * The OTHER sanitiser, for posts that are a whole pasted page rather than editor
+ * output — see BlogPost.format. It lives in its own module because it has no database
+ * import and therefore no server-only constraint, which is what lets the admin editor
+ * and the published page share one definition of the format instead of mirroring it.
+ */
+import {
+  asPostFormat,
+  pageBodyText,
+  sanitizePagePostHtml,
+  type PostFormat,
+} from '@/lib/post-page-html'
 
 export { slugify }
+export {
+  asPostFormat,
+  htmlPostDocument,
+  sanitizePagePostHtml,
+  HTML_POST_SCOPE_CLASS,
+  type HtmlPostDocument,
+  type PostFormat,
+} from '@/lib/post-page-html'
 
 /**
  * The blog's data layer: accessors, validation and sanitisation, in one place.
@@ -47,7 +67,30 @@ export interface BlogPost {
    * writes an introduction.
    */
   excerpt: string | null
-  /** Sanitised HTML from the editor. The ONLY thing ever rendered — see sanitizePostHtml. */
+  /**
+   * Which of the two editors wrote this post, and therefore which boundary its HTML
+   * came through and how the page renders it.
+   *
+   * 'editor' IS THE RICH EDITOR and everything this field did not exist for. The body
+   * is TipTap's output, sanitised against the narrow allowlist below, and the post page
+   * draws it inside the site: hero, byline, cover, prose column, tags, author card, FAQ,
+   * CTA band.
+   *
+   * 'html' IS A WHOLE PAGE, pasted in and published as itself. The body went through the
+   * much wider boundary in lib/post-page-html.ts instead, and the post page renders it
+   * alone — no hero, no prose column, and the site's own header and footer suppressed.
+   * That is the point of it: somebody arrives with a finished page and wants the finished
+   * page, not this site's frame around a fragment of it.
+   *
+   * ABSENT ON EVERY POST WRITTEN SO FAR, which is why asPostFormat defaults to 'editor'
+   * rather than requiring the field. Nothing needs migrating, and a document written
+   * straight into the database with no format gets the narrower of the two.
+   */
+  format: PostFormat
+  /**
+   * The post's HTML. Sanitised on SAVE, never on render — through sanitizePostHtml for
+   * an editor post and sanitizePagePostHtml for an HTML one, chosen by `format` above.
+   */
   contentHtml: string
   /**
    * The cover, on Cloudinary. Null for a post without one, and null for the
@@ -312,6 +355,22 @@ export function sanitizePostHtml(html: string): string {
   return sanitizeHtml(html, SANITIZE_OPTIONS)
 }
 
+/**
+ * The save path's one entry point to sanitisation, so a caller cannot pick the wrong
+ * boundary for the post it is saving.
+ *
+ * WHY THE CHOICE IS MADE HERE AND NOWHERE ELSE. There are now two allowlists with very
+ * different reach, and the failure mode of confusing them is silent and one-directional:
+ * running an editor post through the page boundary stores markup the prose styles were
+ * never written for, and it is the *other* way round that matters — a pasted page put
+ * through the editor's allowlist loses its styles and its layout and arrives as a column
+ * of bare paragraphs, with no error anywhere saying why. One function keyed on the post's
+ * own format is the only arrangement where that cannot be got wrong by adding a caller.
+ */
+export function sanitizeForFormat(html: string, format: PostFormat): string {
+  return format === 'html' ? sanitizePagePostHtml(html) : sanitizePostHtml(html)
+}
+
 /** How many `<img>` tags a chunk of HTML contains. Used either side of
  *  sanitisation to notice when images were about to be dropped in silence —
  *  see the guard in the save action. */
@@ -433,10 +492,25 @@ export function splitForMidCta(html: string): { before: string; after: string } 
  * save and stored, so the list page never re-parses every post's HTML to show
  * a number beside its title.
  */
-export function readingMinutes(html: string): number {
-  const words = sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
-    .split(/\s+/)
-    .filter(Boolean).length
+export function readingMinutes(html: string, format: PostFormat = 'editor'): number {
+  /**
+   * A PASTED PAGE NEEDS THE OTHER TEXT EXTRACTOR, and the difference is not small.
+   *
+   * The editor branch strips tags and keeps everything between them, which on TipTap
+   * output is exactly the prose. On a page carrying its own head and stylesheet it
+   * would be the prose PLUS the <title>, the meta description and every selector in
+   * the CSS — a 6KB stylesheet reads as roughly 600 words, so a one-minute page would
+   * claim four. pageBodyText() removes all three, and is the same function the admin
+   * editor uses for its live count, so the number a writer sees and the number that
+   * gets stored cannot disagree.
+   *
+   * The parameter defaults, so every existing call site is unchanged.
+   */
+  const text =
+    format === 'html'
+      ? pageBodyText(html)
+      : sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
+  const words = text.split(/\s+/).filter(Boolean).length
   return Math.max(1, Math.round(words / 200))
 }
 
@@ -528,6 +602,9 @@ function toFaqs(value: unknown): { question: string; answer: string }[] {
 function toPost(doc: WithId<Document>): BlogPost {
   return {
     id: String(doc._id),
+    /* Defaults to 'editor' for every post written before the field existed. See the
+       note on BlogPost.format for why that default is the safe direction. */
+    format: asPostFormat(doc.format),
     slug: String(doc.slug),
     title: String(doc.title),
     description: String(doc.description),

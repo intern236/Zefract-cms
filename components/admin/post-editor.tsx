@@ -9,11 +9,11 @@ import { Image as TiptapImage } from '@tiptap/extension-image'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { TableKit } from '@tiptap/extension-table'
 import {
-  Check, ChevronDown, Code2, Eye, FileText, FolderOpen, HelpCircle, ImageIcon, Rocket, Search,
+  Check, ChevronDown, Eye, FileText, FolderOpen, HelpCircle, ImageIcon, Rocket, Search,
   Tag, UserRound,
 } from 'lucide-react'
 import { FaqFields } from '@/components/admin/faq-fields'
-import { HtmlSource } from '@/components/admin/html-source'
+import { FormatSwitch } from '@/components/admin/format-switch'
 import { FIELD_BASE } from '@/components/forms/field'
 import { Label } from '@/components/ui/label'
 import { AdminBar } from '@/components/admin/admin-bar'
@@ -33,6 +33,15 @@ import { validateFile, type CloudinaryImage } from '@/lib/cloudinary/types'
 import { startUpload } from '@/lib/cloudinary/upload-client'
 import { bodyUrl, isStoredImageSrc } from '@/lib/cloudinary/url'
 import { slugify } from '@/lib/slug'
+/* From the head-reading module, not lib/post-page-html.ts: importing the latter would pull
+   sanitize-html into this client bundle to run four regular expressions. That split is the
+   whole reason lib/post-page-meta.ts exists. */
+import {
+  pageDescription,
+  pageTitle,
+  pageWordCount,
+  type PostFormat,
+} from '@/lib/post-page-meta'
 import { cn } from '@/lib/utils'
 import { savePost, deletePost, type SaveResult } from '@/app/admin/(dashboard)/blog/actions'
 import { adoptRemoteImage, deleteAsset } from '@/app/admin/(dashboard)/blog/media-actions'
@@ -70,6 +79,9 @@ export type EditorPost = {
   tags: string[]
   /** Questions published as an accordion and as FAQPage schema. */
   faqs: { question: string; answer: string }[]
+  /** Which surface wrote it, and how the published page renders it. */
+  format: PostFormat
+  /** The body: TipTap's HTML for an editor post, the pasted document for an HTML one. */
   contentHtml: string
   /** The Cloudinary cover, or null. Legacy MongoDB covers arrive as
    *  `legacyCoverUrl` instead — see the note on the cover panel. */
@@ -278,6 +290,21 @@ export function PostEditor({
   const router = useRouter()
 
   const [section, setSection] = useState('content')
+  /**
+   * The two writing surfaces, and why BOTH bodies are held here at once.
+   *
+   * A post stores one body, but the editor holds two drafts: TipTap's document and the
+   * pasted page. Switching format therefore loses nothing and needs no confirmation —
+   * flip back and the other one is still exactly as it was. What IS destructive is
+   * saving in the format the post was not saved in, and <FormatSwitch> shows a warning
+   * strip for precisely as long as that mismatch exists.
+   *
+   * `pageHtml` seeds from the post ONLY when the post is already an HTML one. Seeding it
+   * from an editor post's contentHtml would put TipTap's markup into the paste box, where
+   * it looks like a draft somebody started and is really a copy of the other surface.
+   */
+  const [format, setFormat] = useState<PostFormat>(post?.format ?? 'editor')
+  const [pageHtml, setPageHtml] = useState(post?.format === 'html' ? post.contentHtml : '')
   const [title, setTitle] = useState(post?.title ?? '')
   const [slug, setSlug] = useState(post?.slug ?? '')
   /* Until the admin touches the slug, it tracks the title live. The first
@@ -518,7 +545,69 @@ export function PostEditor({
   const words = docState?.words ?? 0
   const hasHeading = docState?.hasHeading ?? false
   const bodyText = docState?.text ?? ''
-  const readMinutes = words === 0 ? 0 : Math.max(1, Math.round(words / 200))
+
+  /**
+   * The same two numbers for a pasted page, counted from the markup.
+   *
+   * AN ESTIMATE, AND DELIBERATELY NOT THE STORED ONE. What gets saved on the post is
+   * computed on the server by readingMinutes(), which runs the real text extractor. This
+   * is a live figure for a textarea that changes on every keystroke, and doing it with a
+   * regular expression here keeps sanitize-html — around 50KB — out of the admin bundle
+   * for a number that is only ever advisory.
+   *
+   * STYLE AND SCRIPT BLOCKS COME OUT FIRST, and that is the whole reason this is not a
+   * bare tag strip. A page carrying a 6KB stylesheet would otherwise report roughly 600
+   * words of CSS as prose, which is wrong by more than the number is worth.
+   */
+  const isPage = format === 'html'
+  const pageWords = useMemo(() => (isPage ? pageWordCount(pageHtml) : 0), [isPage, pageHtml])
+  const shownWords = isPage ? pageWords : words
+  const shownMinutes = shownWords === 0 ? 0 : Math.max(1, Math.round(shownWords / 200))
+
+  /**
+   * The page's own title and description, read live out of the paste box.
+   *
+   * THIS IS WHY AN HTML POST HAS NO FIELDS. Everything the editor would otherwise ask
+   * for is already in the document somebody pasted: the `<title>`, the meta description,
+   * the headings, the structured data. Asking again would be asking a writer to keep two
+   * copies of the same fact in step, and the copy that loses is always the one nobody can
+   * see from where they are working.
+   *
+   * SO THE PAGE IS THE SOURCE. These two are read back out of it, shown in the panel so
+   * the writer can confirm they were found, and sent as the post’s stored title and
+   * description — which the blog index card, the admin list and the sitemap all need
+   * whether or not the post page itself uses them. savePost() derives the same two values
+   * server-side from the same helpers, so a request that skips this UI cannot store a post
+   * with a title its page does not have.
+   */
+  const detectedTitle = useMemo(() => (isPage ? pageTitle(pageHtml) : null), [isPage, pageHtml])
+  const detectedDescription = useMemo(
+    () => (isPage ? pageDescription(pageHtml) : null),
+    [isPage, pageHtml]
+  )
+
+  /**
+   * What actually gets sent as the post’s identity.
+   *
+   * For a written post these are the fields, unchanged. For a pasted page they are the
+   * page’s own head, because there are no fields — see detectedTitle above.
+   */
+  const outgoingTitle = isPage ? (detectedTitle ?? '') : title
+  const outgoingDescription = isPage ? (detectedDescription ?? '') : description
+
+  /**
+   * The slug, which is the one thing a pasted page cannot supply.
+   *
+   * A page carries its title and its description; it does not carry the URL it should
+   * live at. So the slug follows the detected title the same way it follows the title
+   * field on a written post — until somebody edits it, after which it is theirs.
+   *
+   * DERIVED AT USE RATHER THAN SYNCED INTO STATE. The alternative is an effect watching
+   * detectedTitle and calling setSlug, which is a setState in an effect body: the
+   * cascading render this codebase has already recorded a lint error against twice. A
+   * value computed where it is read needs no synchronising and cannot fall behind.
+   */
+  const effectiveSlug = isPage && !slugTouched ? slugify(detectedTitle ?? '') : slug
 
   /** Any edit anywhere counts, not just typing in the body. */
   const touch = useCallback(() => setDirty(true), [])
@@ -550,14 +639,17 @@ export function PostEditor({
 
       const result: SaveResult = await savePost({
         id: post?.id,
-        title,
-        slug,
-        description,
+        title: outgoingTitle,
+        slug: effectiveSlug,
+        description: outgoingDescription,
         excerpt,
         category,
         tags: tags.join(', '),
         faqs,
-        contentHtml: editor.getHTML(),
+        format,
+        /* The active surface's body, and only that one. The other draft stays in state
+           for the length of the session and is never written — a post has one body. */
+        contentHtml: format === 'html' ? pageHtml : editor.getHTML(),
         authorId,
         coverImage,
         coverAlt,
@@ -616,8 +708,9 @@ export function PostEditor({
       }
     },
     [
-      editor, post, title, slug, description, excerpt, category, tags, faqs, coverImage,
-      coverAlt, coverCaption, seoTitle, focusKeyword, authorId, router, adopting,
+      editor, post, outgoingTitle, effectiveSlug, outgoingDescription, excerpt, category,
+      tags, faqs, format, pageHtml, coverImage, coverAlt, coverCaption, seoTitle,
+      focusKeyword, authorId, router, adopting,
     ]
   )
 
@@ -637,8 +730,14 @@ export function PostEditor({
    * `submit` is rebuilt on every keystroke, which re-arms this timer each time
    * — that IS the debounce: it fires three seconds after typing stops.
    */
+  /* Reads the outgoing values rather than the fields, so a pasted page autosaves on the
+     strength of its own head and body instead of on two inputs it does not have. */
   const canAutosave = Boolean(
-    post && post.status === 'draft' && title.trim() && description.trim() && words > 0
+    post &&
+      post.status === 'draft' &&
+      outgoingTitle.trim() &&
+      outgoingDescription.trim() &&
+      shownWords > 0
   )
   useEffect(() => {
     if (!canAutosave || !dirty || busy !== null || autosaving) return
@@ -745,9 +844,17 @@ export function PostEditor({
   }
 
   /**
-   * Five sections, one job each: write it, picture it, file it, label it, make
-   * it findable. Each panel holds one idea, so a section is never a lucky bag
-   * of unrelated fields and the nav label says exactly what is behind it.
+   * Six sections, one job each: write it, picture it, file it, credit it, label
+   * it, make it findable. Each panel holds one idea, so a section is never a lucky
+   * bag of unrelated fields and the nav label says exactly what is behind it.
+   *
+   * THERE IS NO LONGER AN “HTML” SECTION. It was a source view over TipTap’s
+   * document, added when pasting markup was the only way to get a table or a
+   * section the toolbar had no button for. The HTML page format replaced the whole
+   * reason for it: a writer who has markup now picks that format and pastes the
+   * document itself. Keeping both meant two boxes of HTML in one editor, editing
+   * different documents, each of them plausibly the post — which is exactly what it
+   * looked like on screen. components/admin/html-source.tsx went with it.
    */
   const sections: EditorSection[] = [
     {
@@ -777,11 +884,6 @@ export function PostEditor({
        belongs with the writing rather than in the panel of things written for a
        crawler — even though publishing it as schema is most of why it is here. */
     { id: 'faq', label: 'FAQ', icon: HelpCircle, flagged: Boolean(errors.faqs) },
-    /* LAST, ON PURPOSE. It edits the same body the Content panel does, from the
-       other end, and it is the one panel that can replace an article in a
-       keystroke — so it sits at the bottom of the list where nobody lands on it
-       by accident, rather than beside the writing surface it overwrites. */
-    { id: 'html', label: 'HTML', icon: Code2, flagged: false },
     {
       id: 'seo',
       label: 'SEO',
@@ -789,8 +891,28 @@ export function PostEditor({
       flagged: Boolean(errors.description || errors.slug || errors.seoTitle || errors.focusKeyword),
     },
   ]
+  /**
+   * A PASTED PAGE HAS NO SECTIONS, and that is the whole shape of this format.
+   *
+   * Every panel in this list asks for something the pasted document already carries.
+   * SEO reads a title and a description the page has in its own head. Cover, Category,
+   * Author and Tags decorate an article layout that an HTML post returns before
+   * reaching. FAQ would be stored, emit no accordion and no schema, and quietly
+   * convince whoever filled it in that the post has an FAQ.
+   *
+   * A control that does nothing is worse than an absent one: it does not just waste a
+   * click, it makes a promise about the published page that the published page does not
+   * keep. So the nav goes with them, and what is left is the paste box and Save.
+   */
+    .filter(() => !isPage)
+
+  /* Landing on a section that has just been filtered away would show an empty middle
+     column with no tab selected. Switching format sends you back to the body, which is
+     the thing that actually changed. */
+  const activeSection = sections.some((entry) => entry.id === section) ? section : 'content'
+
   const panelId = (id: string) => `panel-${id}`
-  const shown = (id: string) => (section === id ? undefined : 'hidden')
+  const shown = (id: string) => (activeSection === id ? undefined : 'hidden')
 
   /* Preview needs somewhere to point. A published post has a live page; a saved
      draft has the admin-only preview route; an unsaved post has neither, so the
@@ -944,11 +1066,12 @@ export function PostEditor({
       ) : null}
 
       <div className="mt-4 flex flex-col gap-4 md:flex-row">
-        <aside className="shrink-0 md:w-[188px]">
+        {/* The nav goes with the sections it navigates. See the filter on `sections`. */}
+        <aside className={cn('shrink-0 md:w-[188px]', isPage && 'hidden')}>
           <div className={cn('rounded-card border border-line bg-surface md:sticky', PANEL_TOP)}>
             <EditorNav
               sections={sections}
-              active={section}
+              active={activeSection}
               onSelect={setSection}
               panelId={panelId}
             />
@@ -957,9 +1080,56 @@ export function PostEditor({
 
         <main className="min-w-0 flex-1">
           <div>
+            {/* WHICH DOCUMENT THIS IS, above everything it governs. See
+                <FormatSwitch> for why it is here rather than in a panel. */}
+            <FormatSwitch
+              value={format}
+              onChange={(next) => {
+                setFormat(next)
+                touch()
+              }}
+              savedAs={post?.format}
+              /* THE SAME FLAG THE SLUG LOCK USES, for the same reason and with the same
+                 semantics: once published, still locked after an unpublish. The two
+                 formats do not share a body, so switching one on a live post is one
+                 click between a published page and an empty one. savePost() refuses it
+                 server-side; this is the half that stops anyone trying. */
+              locked={post?.everPublished ?? false}
+            />
+
             {/* ---- Title and permalink: the document's identity, always on
                     screen whichever section is open. ------------------------ */}
             <div className="rounded-tile border border-line bg-surface px-4 py-3.5 md:px-5">
+              {/**
+                * ON A PASTED PAGE THE TITLE IS A READOUT, NOT A FIELD.
+                *
+                * The page has a <title> and that is the post’s title. An input here would
+                * be a second place to write the same thing, and the two would disagree the
+                * first time somebody edited one of them — with the page winning on the
+                * published tab and the field winning in the admin list, which is the worst
+                * possible split because neither reader can see the other.
+                *
+                * IT REPORTS ABSENCE LOUDLY, because "no <title>" is the one thing here a
+                * writer must fix in their HTML and cannot fix from this screen. The save
+                * refuses it too — this is the earlier, kinder half of the same rule.
+                */}
+              {isPage ? (
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="font-mono text-[10.5px] tracking-[0.16em] text-mut-2 uppercase">
+                    Title
+                  </span>
+                  {detectedTitle ? (
+                    <span className="min-w-0 flex-1 text-[21px] leading-tight font-extrabold tracking-[-0.025em] text-head md:text-[23px]">
+                      {detectedTitle}
+                    </span>
+                  ) : (
+                    <span className="min-w-0 flex-1 text-[14px] font-semibold text-brand-strong">
+                      No &lt;title&gt; in your HTML yet. Add one — it names the post
+                      everywhere.
+                    </span>
+                  )}
+                </div>
+              ) : (
               <div className="flex items-center gap-3">
                 <input
                   id="title"
@@ -986,6 +1156,27 @@ export function PostEditor({
                   {title.length}/{TITLE_TARGET}
                 </span>
               </div>
+              )}
+
+              {/* The description, alongside the title it was found with. Both come out of
+                  the same head, so reporting them apart would make one of them look like
+                  a setting rather than something the page already said. */}
+              {isPage ? (
+                <div className="mt-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-line pt-2.5">
+                  <span className="shrink-0 font-mono text-[10.5px] tracking-[0.16em] text-mut-2 uppercase">
+                    Description
+                  </span>
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1 text-[13px] leading-[1.5]',
+                      detectedDescription ? 'text-mut' : 'font-semibold text-brand-strong'
+                    )}
+                  >
+                    {detectedDescription ??
+                      'No meta description in your HTML yet. Add one — it is the search snippet and the blog card text.'}
+                  </span>
+                </div>
+              ) : null}
             </div>
 
             {/* The permalink, with the slug editable in place. */}
@@ -1018,13 +1209,23 @@ export function PostEditor({
                 </>
               ) : (
                 <>
-                  <span className="font-mono font-semibold text-head">{slug || 'your-post-slug'}</span>
+                  {/* effectiveSlug, not slug: on a pasted page the slug follows the
+                      page’s own <title> until somebody edits it here. */}
+                  <span className="font-mono font-semibold text-head">
+                    {effectiveSlug || 'your-post-slug'}
+                  </span>
                   {slugLocked ? (
                     <span className="text-mut-2">· locked, the post is published</span>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setSlugEditing(true)}
+                      onClick={() => {
+                        /* Seed the field from what is on screen before opening it, so a
+                           pasted page’s derived slug is what you start editing rather
+                           than the empty state behind it. */
+                        setSlug(effectiveSlug)
+                        setSlugEditing(true)
+                      }}
                       className="font-semibold text-brand-strong hover:text-brand"
                     >
                       Edit
@@ -1051,7 +1252,10 @@ export function PostEditor({
                 behind the section nav: it is part of the document's opening, and
                 a writer settling the first line of a piece should not have to go
                 and find the field. */}
-            <div className={cn('mt-4 rounded-tile border border-line bg-surface p-5', shown('content'))}>
+            {/* Hidden for a pasted page: the standfirst is printed by <PageHero>, which
+                an HTML post returns before reaching. A field whose value is never shown
+                is a question with nowhere to put the answer. */}
+            <div className={cn('mt-4 rounded-tile border border-line bg-surface p-5', shown('content'), isPage && 'hidden')}>
               <div className="flex items-baseline justify-between gap-3">
                 <Label htmlFor="excerpt" className="text-[13.5px] font-semibold text-head">
                   Introduction
@@ -1109,14 +1313,73 @@ export function PostEditor({
                 shown('content')
               )}
             >
-              {editor ? (
-                <EditorToolbar editor={editor} onPickImage={() => inlineImageRef.current?.click()} />
-              ) : (
-                /* Holds the toolbar's height while TipTap mounts, so the card
-                   does not jump taller a beat after the page paints. */
-                <div aria-hidden="true" className="h-[45px] border-b border-line" />
-              )}
-              <EditorContent editor={editor} />
+              {/**
+                * ONE CARD, TWO SURFACES. The toolbar and TipTap for a written post; a
+                * single textarea holding a whole document for a pasted one.
+                *
+                * SWAPPED RATHER THAN GIVEN ITS OWN SECTION, because they are the same
+                * thing: the post's body. A separate "HTML page" tab would leave the
+                * Content tab showing an empty editor on a post that has plenty of
+                * content, which is the shape of bug where somebody retypes an article.
+                *
+                * TIPTAP STAYS MOUNTED UNDERNEATH, hidden rather than unmounted. Its
+                * document is one of the two drafts this editor holds (see the state
+                * note above), and unmounting it would throw that draft away the moment
+                * anyone looked at the other surface.
+                */}
+              {isPage ? (
+                <div className="p-4 md:p-5">
+                  <p className="max-w-[76ch] text-[13px] leading-[1.6] text-mut">
+                    Paste the whole page, <code className="font-mono text-[12px]">&lt;html&gt;</code> and
+                    all. Its layout, CSS, comments, <code className="font-mono text-[12px]">&lt;title&gt;</code>,
+                    meta description and structured data are all kept, and the page publishes on
+                    its own, with this site&rsquo;s header and footer hidden.
+                  </p>
+                  {/* THE ONE THING THAT DOES NOT SURVIVE, said before the paste rather
+                      than discovered after it. See lib/post-page-html.ts. */}
+                  <p className="mt-1.5 max-w-[76ch] text-[12.5px] leading-[1.55] text-mut-2">
+                    <code className="font-mono text-[12px]">&lt;script&gt;</code> is removed on save,
+                    so anything driven by JavaScript will look right but will not move. JSON-LD
+                    structured data is the exception and is kept.
+                  </p>
+                  <textarea
+                    value={pageHtml}
+                    onChange={(event) => {
+                      setPageHtml(event.target.value)
+                      touch()
+                    }}
+                    spellCheck={false}
+                    aria-label="Page HTML"
+                    aria-invalid={errors.content ? true : undefined}
+                    placeholder="<!DOCTYPE html>&#10;<html>&#10;  …"
+                    className={cn(
+                      FIELD_BASE,
+                      'mt-3.5 min-h-[520px] px-4 py-3 font-mono text-[12.5px] leading-[1.7]'
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {/* HIDDEN, NOT UNMOUNTED, and the `hidden` attribute is doing real work
+                  here rather than tidying. Taking <EditorContent> out of the tree
+                  detaches TipTap's view, and a writer who glances at the HTML surface
+                  and switches back has no guarantee of getting their caret, their
+                  selection or their undo history returned. This is the same "all panels
+                  mounted" contract the section nav already runs on, for the same
+                  reason. */}
+              <div hidden={isPage}>
+                {editor ? (
+                  <EditorToolbar
+                    editor={editor}
+                    onPickImage={() => inlineImageRef.current?.click()}
+                  />
+                ) : (
+                  /* Holds the toolbar's height while TipTap mounts, so the card
+                     does not jump taller a beat after the page paints. */
+                  <div aria-hidden="true" className="h-[45px] border-b border-line" />
+                )}
+                <EditorContent editor={editor} />
+              </div>
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line px-4 py-2.5 md:px-5">
                 {errors.content ? (
                   <p className="text-[12.5px] text-red-600">{errors.content}</p>
@@ -1124,9 +1387,9 @@ export function PostEditor({
                   <span />
                 )}
                 <p className="flex shrink-0 items-center gap-2 font-mono text-[11px] text-mut-2 tabular-nums">
-                  <span>{words} words</span>
+                  <span>{shownWords} words</span>
                   <span aria-hidden="true">·</span>
-                  <span>{readMinutes} min read</span>
+                  <span>{shownMinutes} min read</span>
                   <span aria-hidden="true">·</span>
                   <span className="flex items-center gap-1.5">
                     <span
@@ -1147,7 +1410,7 @@ export function PostEditor({
 
             {/* Cover image: the picture on the left where it can be seen at a
                 useful size, and what is written about it on the right. */}
-            <Panel id={panelId('cover')} label="Cover Image" hidden={section !== 'cover'}>
+            <Panel id={panelId('cover')} label="Cover Image" hidden={activeSection !== 'cover'}>
               <div className="grid gap-8 lg:grid-cols-2">
                 <CoverPicker
                   image={coverImage}
@@ -1188,7 +1451,7 @@ export function PostEditor({
 
             {/* Category: its own section, because filing a post is a separate
                 decision from illustrating it. */}
-            <Panel id={panelId('category')} label="Category" hidden={section !== 'category'}>
+            <Panel id={panelId('category')} label="Category" hidden={activeSection !== 'category'}>
               <div className="max-w-md">
                 <CategoryField
                   value={category}
@@ -1205,7 +1468,7 @@ export function PostEditor({
             {/* Author: who gets the byline. Optional — a post with none keeps
                 the company byline it had before authors existed, which is why
                 this panel never flags an error. */}
-            <Panel id={panelId('author')} label="Author" hidden={section !== 'author'}>
+            <Panel id={panelId('author')} label="Author" hidden={activeSection !== 'author'}>
               <div className="max-w-xl">
                 <AuthorPicker
                   authors={authors}
@@ -1220,7 +1483,7 @@ export function PostEditor({
 
             {/* Tags: its own section, because it is a list you build rather
                 than a field you fill. */}
-            <Panel id={panelId('tags')} label="Tags" hidden={section !== 'tags'}>
+            <Panel id={panelId('tags')} label="Tags" hidden={activeSection !== 'tags'}>
               <div className="max-w-xl">
                 <TagInput
                   tags={tags}
@@ -1250,7 +1513,7 @@ export function PostEditor({
                 a paragraph of guidance set across the full panel would run to
                 about 110 characters a line, which is past the point it is
                 comfortable to read. Boxes fill, sentences do not. */}
-            <Panel id={panelId('faq')} label="FAQ" hidden={section !== 'faq'}>
+            <Panel id={panelId('faq')} label="FAQ" hidden={activeSection !== 'faq'}>
               <FaqFields
                 faqs={faqs}
                 max={FAQ_MAX}
@@ -1264,27 +1527,9 @@ export function PostEditor({
               />
             </Panel>
 
-            {/* HTML: the body as markup, for pasting structure the toolbar has
-                no button for. Parsed into the document, never executed — see the
-                note in html-source.tsx for why that distinction is the whole
-                design of this panel. */}
-            <Panel id={panelId('html')} label="HTML" hidden={section !== 'html'}>
-              {/* KEYED ON WHETHER THE PANEL IS OPEN, so opening it remounts the
-                  component and it re-reads the document. Every panel here stays
-                  mounted — that is what keeps the body's caret and undo history
-                  alive when you look at Tags and come back — but this one has to
-                  show the post as it is NOW rather than as it was when the editor
-                  first loaded. A remount is how it gets that without a setState
-                  in an effect; see the note in html-source.tsx. */}
-              <HtmlSource
-                key={section === 'html' ? 'html-open' : 'html-closed'}
-                editor={editor}
-                onApply={touch}
-              />
-            </Panel>
 
             {/* SEO: everything a search engine is handed, and how it scores. */}
-            <Panel id={panelId('seo')} label="SEO" hidden={section !== 'seo'}>
+            <Panel id={panelId('seo')} label="SEO" hidden={activeSection !== 'seo'}>
               <SeoPanel
                 title={title}
                 seoTitle={seoTitle}

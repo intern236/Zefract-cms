@@ -33,11 +33,22 @@ import type { LegalDocument } from '@/content/types'
  *      full at the row's old position, with the text as supplied and the
  *      condition under which it has to come back.
  *
- * SECTION 05 DESCRIBES A CONSENT BANNER THIS SITE DOES NOT HAVE. Read the note on
- * ANALYTICS.consentBanner in content/site.ts before publishing: as things stand,
- * Google Tag Manager loads for every visitor with no consent gate, which is the
- * opposite of what this section tells them. That has to be closed by building the
- * banner or by the client amending the section.
+ * SECTION 05 NOW DESCRIBES SOMETHING THAT EXISTS. It used to be the one part of this
+ * document the site contradicted: it promised a consent banner, non-essential cookies
+ * off by default, a "Cookie settings" link in the footer and Global Privacy Control
+ * honoured, while Google Tag Manager loaded ungated for every visitor. All four are
+ * built — the Consent Mode defaults in components/analytics/google-tag-manager.tsx,
+ * the banner in components/layout/consent-banner.tsx, the footer control in
+ * components/layout/cookie-settings-button.tsx, and the GPC check in lib/consent.ts.
+ * The copy they render is CONSENT in content/site.ts, deliberately next to this file
+ * so the two are edited together.
+ *
+ * WHAT STILL HAS TO AGREE WITH IT. Section 05's table names GA4, the Google Ads tag,
+ * the Meta Pixel and the LinkedIn Insight Tag. Those are configured inside the GTM
+ * container, not in this repository, so nothing here can check that the list is
+ * accurate or that every one of them is actually set to respect the consent signals
+ * the site now sends. That is a container review, and it is the remaining half of
+ * making this section true.
  */
 
 /**
