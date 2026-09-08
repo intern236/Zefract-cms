@@ -2501,3 +2501,61 @@ html[data-consent-open] [data-whatsapp] {
   visibility: hidden;
   pointer-events: none;
 }
+/* ---- HTML posts ----------------------------------------------------------------
+   A post saved in the HTML format is a whole pasted document, rendered by <HtmlPost>
+   inside the site: real header above, real footer below, same gutter as every other
+   page. An earlier version hid all of that so the document owned the viewport, and it
+   read as a raw file served by accident. The rules that hid the header, the footer and
+   the floating buttons are gone with it; nothing here suppresses anything any more.
+
+   WHAT IS LEFT IS THE OPPOSITE PROBLEM: PUTTING BROWSER DEFAULTS BACK.
+
+   Tailwind’s preflight flattens the elements a standalone page relies on. Headings lose
+   their size and weight to `font-size: inherit`, lists lose their markers and their
+   indent, and every margin goes to zero. A page whose CSS styles everything explicitly
+   does not notice. A page that leans on the browser — which is most hand-written HTML,
+   and nearly all of what a generator produces — arrives as one undifferentiated column
+   of text, and the writer has no way to tell from the editor that it will.
+
+   So the defaults come back, scoped to the post. These are the UA values, not this
+   site’s: the point is to hand the page the browser it was written against, not to make
+   it look like the rest of the site. Anything the page sets itself still wins, because
+   its own stylesheet is scoped to the same wrapper and lands later.
+
+   UNLAYERED, so it beats preflight rather than losing to it — the trap [data-to-top]
+   documents further up. Preflight lives in a layer, and an unlayered rule beats every
+   layered one regardless of specificity. */
+[data-html-post] h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
+[data-html-post] h2 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
+[data-html-post] h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0; }
+[data-html-post] h4 { font-size: 1em; font-weight: bold; margin: 1.33em 0; }
+[data-html-post] h5 { font-size: 0.83em; font-weight: bold; margin: 1.67em 0; }
+[data-html-post] h6 { font-size: 0.67em; font-weight: bold; margin: 2.33em 0; }
+[data-html-post] p,
+[data-html-post] blockquote,
+[data-html-post] figure,
+[data-html-post] dl,
+[data-html-post] pre { margin: 1em 0; }
+[data-html-post] blockquote,
+[data-html-post] figure { margin-inline: 40px; }
+[data-html-post] ul,
+[data-html-post] ol { margin: 1em 0; padding-inline-start: 40px; }
+[data-html-post] ul { list-style: disc outside; }
+[data-html-post] ol { list-style: decimal outside; }
+[data-html-post] li { display: list-item; }
+[data-html-post] dd { margin-inline-start: 40px; }
+[data-html-post] hr { margin: 0.5em auto; border-style: inset; border-width: 1px; }
+/* Preflight makes every <img> a block. That is right for an article and wrong for a page
+   laying out its own inline media, so it goes back to the default and keeps only the
+   overflow guard, which no design wants to lose. */
+[data-html-post] img,
+[data-html-post] svg,
+[data-html-post] video { display: inline-block; vertical-align: middle; max-width: 100%; }
+/* A page that draws its own table expects the UA borders to exist before it restyles
+   them. Preflight collapses and strips them, which turns an unstyled table into a wall
+   of unaligned text. */
+[data-html-post] table { border-collapse: separate; border-spacing: 2px; }
+[data-html-post] th { font-weight: bold; text-align: center; }
+[data-html-post] b,
+[data-html-post] strong { font-weight: bolder; }
+[data-html-post] a { color: -webkit-link; text-decoration: underline; }

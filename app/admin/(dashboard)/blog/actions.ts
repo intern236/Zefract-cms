@@ -10,10 +10,12 @@ import { getAuthorById } from '@/lib/authors'
 import { getDb, BLOG_COLLECTION } from '@/lib/mongodb'
 import {
   POST_LIMITS,
+  asPostFormat,
   countImageTags,
   getPostById,
+  htmlPostDocument,
   readingMinutes,
-  sanitizePostHtml,
+  sanitizeForFormat,
   slugTaken,
   slugify,
   tagSlug,
@@ -51,6 +53,9 @@ export type PostPayload = {
    *  because this arrives over HTTP like everything else. */
   faqs: unknown
   category: unknown
+  /** 'editor' or 'html' — which boundary contentHtml goes through, and how the post
+   *  page renders it. Coerced by asPostFormat, which defaults to the narrower one. */
+  format: unknown
   contentHtml: unknown
   /** The author's id, or '' for none. Validated against the collection before
    *  it is stored — see the note at the check. */
@@ -155,8 +160,6 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
     return { ok: false, errors: { form: 'Your session has expired. Sign in again.' } }
   }
 
-  const title = asString(payload.title)
-  const description = asString(payload.description)
   const excerpt = asString(payload.excerpt)
   const faqs = asFaqs(payload.faqs)
   const category = asString(payload.category)
@@ -165,6 +168,25 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
   const seoTitle = asString(payload.seoTitle)
   const focusKeyword = asString(payload.focusKeyword)
   const rawHtml = typeof payload.contentHtml === 'string' ? payload.contentHtml : ''
+  /* Coerced, not trusted: anything that is not exactly 'html' is an editor post, so a
+     hand-crafted request cannot reach the wider boundary by sending a typo. */
+  const format = asPostFormat(payload.format)
+
+  /**
+   * A PASTED PAGE SUPPLIES ITS OWN TITLE AND DESCRIPTION, and the server reads them
+   * rather than taking the editor’s word for it.
+   *
+   * The HTML surface in the admin has no title or description field — the pasted
+   * document already carries both, and asking again would create two copies of one
+   * fact. It sends what it detected, and this re-derives the same two values from the
+   * same helpers so a hand-crafted request cannot store a post whose title its page
+   * does not have. The payload is the fallback, not the source.
+   */
+  const pageDoc = format === 'html' ? htmlPostDocument(rawHtml) : null
+  const title = pageDoc ? (pageDoc.title ?? asString(payload.title)) : asString(payload.title)
+  const description = pageDoc
+    ? (pageDoc.description ?? asString(payload.description))
+    : asString(payload.description)
   const coverImage = asCloudinaryImage(payload.coverImage)
   const intent = payload.intent
 
@@ -180,7 +202,14 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
     .slice(0, POST_LIMITS.tagCount)
 
   const errors: Record<string, string> = {}
-  if (!title) errors.title = 'Give the post a title.'
+  /* The fix is in a different place for each format, so the message names it. On a
+     pasted page there is no field to fill in — the <title> has to go in the HTML. */
+  if (!title) {
+    errors.title =
+      format === 'html'
+        ? 'Your HTML has no <title>. Add one — it names the post everywhere.'
+        : 'Give the post a title.'
+  }
   else if (title.length > POST_LIMITS.title) {
     errors.title = `Longer than we store (${POST_LIMITS.title} characters).`
   }
@@ -197,7 +226,12 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
   if (faqs.some((faq) => faq.answer.length > POST_LIMITS.faqAnswer)) {
     errors.faqs = `Keep each answer under ${POST_LIMITS.faqAnswer} characters.`
   }
-  if (!description) errors.description = 'Write the one-sentence description — it is the search snippet and the card text.'
+  if (!description) {
+    errors.description =
+      format === 'html'
+        ? 'Your HTML has no <meta name="description">. Add one — it is the search snippet and the blog card text.'
+        : 'Write the one-sentence description — it is the search snippet and the card text.'
+  }
   else if (description.length > POST_LIMITS.description) {
     errors.description = `Longer than we store (${POST_LIMITS.description} characters).`
   }
@@ -255,7 +289,9 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
 
   if (Object.keys(errors).length > 0) return { ok: false, errors }
 
-  const contentHtml = sanitizePostHtml(rawHtml)
+  /* The post's own format picks the boundary. See sanitizeForFormat in lib/blog.ts for
+     why that choice is made in one place rather than at each call site. */
+  const contentHtml = sanitizeForFormat(rawHtml, format)
 
   /**
    * Did sanitising just throw images away?
@@ -267,8 +303,16 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
    * here, so this should not fire — which is exactly why it is worth keeping.
    * It is the check that tells us the adoption path has a hole, instead of the
    * author discovering it on the live site.
+   *
+   * NOT FOR AN HTML POST, and skipping it is the point rather than an omission. The
+   * rule it reports on — images must be ours — is the editor's rule, and it exists
+   * because the rich editor uploads what it is given. A pasted page's images live on
+   * whatever CDN the page was built against, keeping them is the entire request, and
+   * the page boundary allows them. Left running, this would fire on every HTML post
+   * and report a loss that never happened.
    */
-  const imagesDropped = countImageTags(rawHtml) - countImageTags(contentHtml)
+  const imagesDropped =
+    format === 'html' ? 0 : countImageTags(rawHtml) - countImageTags(contentHtml)
   const warning =
     imagesDropped > 0
       ? `${imagesDropped} ${imagesDropped === 1 ? 'image was' : 'images were'} not saved — ` +
@@ -295,6 +339,39 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
   const everPublished = Boolean(existing?.publishedAt)
   const finalSlug = everPublished ? existing!.slug : slug
 
+  /**
+   * THE FORMAT LOCKS AT FIRST PUBLISH TOO, for a different reason than the slug.
+   *
+   * The two formats do not share a body. A post stores one `contentHtml`, and switching
+   * format means the next save writes the OTHER surface's document into it — TipTap's
+   * markup over a pasted page, or a pasted page over an article. On a draft that is a
+   * normal thing to do and the editor lets you, holding both drafts in memory so you can
+   * change your mind. On something already published it is one click between a live page
+   * and a body that no longer exists anywhere, with no undo and nothing in the database to
+   * recover from.
+   *
+   * REFUSED RATHER THAN COERCED, which is the whole point of doing it here. Forcing
+   * `format` back to the stored value would be the smaller-looking fix and the dangerous
+   * one: the request would still carry the wrong surface's body, and the save would
+   * cheerfully store TipTap's markup as a published page's document. Refusing the write is
+   * the only response that cannot destroy the post.
+   *
+   * The editor locks the control, so in normal use this never fires. It is here for the
+   * stale tab, the double submit and the hand-crafted request — an action is an HTTP
+   * endpoint, and none of the checks in the client are controls.
+   */
+  if (existing && everPublished && format !== existing.format) {
+    return {
+      ok: false,
+      errors: {
+        form:
+          existing.format === 'html'
+            ? 'This post is published as an HTML page. A published post keeps the editor it was published with — create a new post to write it in the rich editor.'
+            : 'This post is published from the rich editor. A published post keeps the editor it was published with — create a new post to publish it as an HTML page.',
+      },
+    }
+  }
+
   if (!everPublished && (await slugTaken(finalSlug, existing?.id))) {
     return { ok: false, errors: { slug: 'Another post already uses this slug.' } }
   }
@@ -317,6 +394,7 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
        should do: go back to the behaviour the post had before. */
     excerpt: excerpt || null,
     faqs,
+    format,
     contentHtml,
     /* Alt and caption travel INSIDE the asset record, so the whole image is one
        self-describing object — which is the shape a Media Library will want to
@@ -342,7 +420,7 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
     status,
     publishedAt,
     updatedAt: now,
-    readingMinutes: readingMinutes(contentHtml),
+    readingMinutes: readingMinutes(contentHtml, format),
   }
 
   let id: string

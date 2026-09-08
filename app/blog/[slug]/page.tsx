@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { HtmlPost } from '@/components/blog/html-post'
 import { PageHero } from '@/components/ui/page-hero'
 import { Container, Section } from '@/components/ui/section'
 import { Reveal } from '@/components/motion/reveal'
@@ -19,6 +20,7 @@ import {
   formatPostDate,
   coverImageUrl,
   coverImageSrcSet,
+  htmlPostDocument,
   renderablePostHtml,
   splitForMidCta,
 } from '@/lib/blog'
@@ -67,12 +69,28 @@ export async function generateMetadata({
    * before publishing and decides. A long description is indexed perfectly well;
    * only its tail is dropped from the snippet, and Google frequently rewrites
    * the snippet regardless.
+   *
+   * ─────────────────────────────────────────────────────────────────────────
+   * A PASTED PAGE'S OWN HEAD WINS, where it has one.
+   *
+   * An HTML post arrives as a whole document, and "SEO included" was most of the point of
+   * asking for the format: its `<title>` and `<meta name="description">` were written for
+   * this page by whoever built it. Those tags cannot be emitted from the body — the root
+   * layout owns the real head — so they are lifted out here and handed to Next's metadata,
+   * which puts them where they belong.
+   *
+   * THE POST'S OWN FIELDS STILL STAND BEHIND THEM. A page pasted as a fragment has no head
+   * at all, and the editor's Title and SEO panels are filled in either way because the blog
+   * index, the sitemap and the share card all read them. So this is an override, not a
+   * replacement: whichever exists, with the document's version first.
    */
-  const description = post.description
+  const doc = post.format === 'html' ? htmlPostDocument(post.contentHtml) : null
+
+  const description = doc?.description || post.description
   const cover = coverImageUrl(post)
   /* The SEO title where the author set one, the headline otherwise. This is the
      only place the two differ: the <h1> on the page is always post.title. */
-  const metaTitle = post.seoTitle || post.title
+  const metaTitle = doc?.title || post.seoTitle || post.title
 
   return {
     title: metaTitle,
@@ -110,6 +128,51 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const { slug } = await params
   const post = await getPublishedPost(slug)
   if (!post || !post.publishedAt) notFound()
+
+  /**
+   * AN HTML POST IS THE BODY, INSIDE THE SITE.
+   *
+   * It renders with the real header and footer, in the same section and gutter every
+   * other page gets. The first version hid the chrome so the pasted document owned the
+   * viewport, and on screen that read as a raw file served by accident rather than as a
+   * post on a website.
+   *
+   * WHAT IT STILL SKIPS, each for its own reason rather than as a job lot:
+   *
+   *   • <PageHero>. The pasted page opens with its own headline; ours would print the
+   *     title a second time, immediately above it.
+   *   • The cover, byline, tags, author card and FAQ. None of them has any data on an
+   *     HTML post, because the editor deliberately offers no fields for them — the
+   *     pasted document already carries everything it needs.
+   *   • The mid-article CTA and the prose column. Both assume a body of prose that the
+   *     site is laying out. Here the page lays itself out.
+   *
+   * It also skips three database reads that only fed the parts above.
+   *
+   * THE SCHEMA IS CONDITIONAL, NOT ABSENT. The boundary preserves
+   * `<script type="application/ld+json">` precisely so a page can bring its own, and two
+   * differently-shaped descriptions of one URL is how a page ends up telling a search
+   * engine two things about itself. So ours is emitted only where the page brought none.
+   */
+  if (post.format === 'html') {
+    const doc = htmlPostDocument(post.contentHtml)
+    return (
+      <>
+        {doc.hasStructuredData ? null : (
+          <BlogPostingSchema
+            title={doc.title || post.title}
+            description={doc.description || post.description}
+            slug={post.slug}
+            publishedAt={post.publishedAt}
+            updatedAt={post.updatedAt}
+            imageUrl={coverImageUrl(post)}
+            author={null}
+          />
+        )}
+        <HtmlPost html={post.contentHtml} />
+      </>
+    )
+  }
 
   const cover = coverImageUrl(post)
   /* Two or three other recent posts, excluding this one. Recency stands in for
