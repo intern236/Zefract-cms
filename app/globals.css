@@ -2410,3 +2410,94 @@ body:has([data-admin-surface]) .cursor-ring {
   background: color-mix(in srgb, var(--color-brand) 10%, transparent);
   pointer-events: none;
 }
+
+/* ---- Consent banner ------------------------------------------------------------
+   The card's entrance and exit. Everything else about it - the corner it sits in, the
+   surface, the type - is utility classes on the element; only the two animations are
+   here, because <ConsentBanner> needs to key an exit off an attribute and there is no
+   utility that expresses "animate out, then tell me when you are done".
+
+   THE EXIT IS WHAT THIS BLOCK IS ACTUALLY FOR. Answering writes the cookie, which makes
+   the component return null on the next render, so without something holding the element
+   in place the card would disappear between two frames. The component keeps it mounted
+   until `animationend` fires; these rules are what that event comes from. The entrance
+   could have been a utility and lives here to sit beside its counterpart.
+
+   UNLAYERED, so it beats any Tailwind animation utility that ever lands on this element
+   rather than losing to it silently - the same trap [data-to-top] documents further up.
+
+   MOTION OFF IS HANDLED BY THE GLOBAL RULE at the top of the reduced-motion block: it
+   collapses every animation-duration to 0.01ms, which lands both of these on their `to`
+   frame immediately. `both` is what makes that safe - the fill is why a collapsed
+   animation ends up at its end state instead of parked on its start. The exit still
+   fires `animationend`, so the card still unmounts. Nothing to add here. */
+[data-consent-banner] {
+  animation: consent-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-consent-banner][data-leaving='true'] {
+  /* Faster and on an ease-in, because leaving is an acknowledgement rather than an
+     arrival: the visitor has just clicked and wants the card gone, not eased out. */
+  animation: consent-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+  /* THE FAILSAFE, and it is worth the line. The card is removed from the tree by the
+     `animationend` event, so a browser that never fires one - animations disabled at the
+     engine level, a headless renderer, a bug - would leave it parked on the exit
+     animation's last frame: invisible at opacity 0, and still catching clicks over the
+     bottom-left corner of every page. `both` guarantees the invisibility; this guarantees
+     that being invisible is the whole of it. */
+  pointer-events: none;
+}
+@keyframes consent-in {
+  from {
+    opacity: 0;
+    /* Up from below the fold edge, with a hair of scale so it reads as approaching
+       rather than sliding. 0.985 rather than a rounder number: at 424px wide anything
+       lower is visibly a zoom. */
+    transform: translateY(16px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes consent-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+/* The bottom edge belongs to the consent bar while it is up.
+
+   <ConsentBanner> is centred on that edge and stops growing at 56rem; <WhatsAppButton>
+   and <BackToTop> are pinned to the right of it. Above roughly 1050px of viewport the two
+   clear each other, and below it they do not - the worst case being a 1024px laptop where
+   the WhatsApp disc sticks out past the bar's right end by a few pixels. That is a band of
+   widths rather than an edge case, so both controls step aside for the length of one
+   decision and come back the moment it is made.
+
+   HIDDEN, NOT MOVED. Nudging them upward needs the bar's height, which changes with the
+   copy, the viewport and whether the reopened state adds a line - a number maintained by
+   hand in a second file, which is the coupling back-to-top.tsx already warns about for its
+   own offsets. This needs no number.
+
+   SPECIFICITY IS WHY THIS WORKS AND WHY IT IS UNLAYERED. `[data-to-top][data-show='true']`
+   above is (0,2,0) and sets its own opacity and visibility; the selectors here are (0,2,1)
+   and beat it. The WhatsApp button is styled entirely with Tailwind utilities, which are
+   layered, so any unlayered rule beats those outright.
+
+   THE TWO LEAVE DIFFERENTLY, AND NOTHING HERE ARRANGES THAT. [data-to-top] already
+   transitions its own opacity over 260ms, so it inherits that and fades; the WhatsApp
+   button transitions background, shadow and transform but not opacity, so it snaps. No
+   transition is declared here to even them out, because doing so for the second one means
+   overriding the transition its utilities set for its hover state, to fix something that
+   happens underneath a bar sliding into the same corner. Neither is visible in practice. */
+html[data-consent-open] [data-to-top],
+html[data-consent-open] [data-whatsapp] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}

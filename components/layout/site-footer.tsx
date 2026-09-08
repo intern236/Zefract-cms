@@ -3,6 +3,7 @@ import { ZefractLockup } from '@/components/brand/zefract-lockup'
 import { SITE, CONTACT, FOOTER_NAV } from '@/content/site'
 import { contactChannels, ContactChannelRow } from '@/components/ui/contact-channels'
 import { SocialLinks } from '@/components/ui/social-links'
+import { CookieSettingsButton } from '@/components/layout/cookie-settings-button'
 
 export function SiteFooter() {
   const channels = contactChannels()
@@ -64,6 +65,16 @@ export function SiteFooter() {
                       </Link>
                     </li>
                   ))}
+                  {/* "Cookie settings", appended to Legal rather than added to FOOTER_NAV.
+                      That list is `{ label, href }` pairs and this entry has no href — it
+                      reopens the consent banner in place. Giving the data a nullable href
+                      to accommodate one button would make every consumer of FOOTER_NAV
+                      handle a case only this row has. */}
+                  {group.heading === 'Legal' ? (
+                    <li>
+                      <CookieSettingsButton />
+                    </li>
+                  ) : null}
                 </ul>
               </div>
             ))}

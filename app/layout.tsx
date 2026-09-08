@@ -7,6 +7,7 @@ import { BackToTop } from '@/components/layout/back-to-top'
 import { WhatsAppButton } from '@/components/layout/whatsapp-button'
 import { MotionProvider } from '@/components/motion/motion-provider'
 import { CursorRing } from '@/components/motion/cursor-ring'
+import { ConsentBanner } from '@/components/layout/consent-banner'
 import {
   GoogleTagManager,
   GoogleTagManagerNoScript,
@@ -204,6 +205,13 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           <BackToTop />
           <WhatsAppButton />
           <CursorRing />
+          {/* LAST IN THE DOCUMENT, WHICH IS WHERE A CONSENT NOTICE BELONGS. It is a labelled
+              region rather than a dialog and it does not take focus on a first visit, so
+              putting it earlier would only push it in front of the skip link and the header
+              for every keyboard user on every page. It renders nothing at all until the
+              browser has read the cookie — see the component for why that is what keeps the
+              whole site statically rendered. */}
+          <ConsentBanner />
         </MotionProvider>
       </body>
     </html>
