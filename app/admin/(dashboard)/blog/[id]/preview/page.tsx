@@ -10,6 +10,8 @@ import { AuthorByline } from '@/components/ui/author-byline'
 import { AuthorCard } from '@/components/ui/author-card'
 import { TagLink } from '@/components/ui/tag-link'
 import { getAuthorById } from '@/lib/authors'
+import { extractBodyFaqs } from '@/lib/faq-extract'
+import { FaqSchema } from '@/lib/schema'
 import {
   getPostById,
   formatPostDate,
@@ -99,6 +101,9 @@ export default async function PreviewPostPage({ params }: { params: Promise<{ id
      differ from it on the parts a writer is here to check. */
   const author = post.authorId ? await getAuthorById(post.authorId) : null
   const midCta = splitForMidCta(renderablePostHtml(post.contentHtml))
+  /* The same rule the published page applies: questions typed into the article become
+     FAQ schema only when the FAQ panel is empty. See the note in app/blog/[slug]/page.tsx. */
+  const bodyFaqs = post.faqs.length === 0 ? extractBodyFaqs(post.contentHtml) : []
 
   return (
     <>
@@ -204,6 +209,7 @@ export default async function PreviewPostPage({ params }: { params: Promise<{ id
         heading="Frequently asked questions"
         spacing="compact"
       />
+      <FaqSchema faqs={bodyFaqs} />
     </>
   )
 }

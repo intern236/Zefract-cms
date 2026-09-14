@@ -11,7 +11,8 @@ import { PostCta } from '@/components/sections/post-cta'
 import { AuthorByline } from '@/components/ui/author-byline'
 import { AuthorCard } from '@/components/ui/author-card'
 import { TagLink } from '@/components/ui/tag-link'
-import { BlogPostingSchema } from '@/lib/schema'
+import { BlogPostingSchema, FaqSchema } from '@/lib/schema'
+import { extractBodyFaqs } from '@/lib/faq-extract'
 import { getAuthorById } from '@/lib/authors'
 import {
   getPublishedPost,
@@ -190,6 +191,25 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   /* Only for a named author, and only to put a number on the link out of the
      card — a post published under the company has no profile to count. */
   const authorPostCount = author ? (await getPublishedPostsByAuthor(author.id)).length : 0
+  /**
+   * FAQ SCHEMA FOR QUESTIONS TYPED INTO THE ARTICLE, when the FAQ panel is empty.
+   *
+   * The client's review found a live post with an "FAQs" heading and four bold questions
+   * in its body, every one visible to readers, and no FAQPage schema — because schema only
+   * ever came from the editor's FAQ panel, and nobody uses a panel when they can just type.
+   * extractBodyFaqs() recognises that shape; see lib/faq-extract.ts for exactly what it will
+   * and will not accept, which is deliberately little.
+   *
+   * THE PANEL WINS, ALWAYS. Where a writer has filled it in, those are the questions they
+   * chose to publish as data, and <FaqSection> below renders them as the accordion and the
+   * schema together. The body is only read when the panel is empty, so a page can never
+   * carry two FAQPage blocks, and a deliberate entry is never overruled by a guess.
+   *
+   * SCHEMA ONLY, NO ACCORDION. These questions are already on the page, in the article,
+   * where the writer put them. Rendering them a second time as an accordion would print
+   * every question twice.
+   */
+  const bodyFaqs = post.faqs.length === 0 ? extractBodyFaqs(post.contentHtml) : []
 
   return (
     <>
@@ -386,6 +406,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         heading="Frequently asked questions"
         spacing="compact"
       />
+      {/* Empty whenever the panel above has questions — see the note on bodyFaqs. */}
+      <FaqSchema faqs={bodyFaqs} />
 
       {more.length > 0 ? (
         <Section spacing="compact">

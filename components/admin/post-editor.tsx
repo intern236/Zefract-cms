@@ -12,6 +12,7 @@ import {
   Check, ChevronDown, Eye, FileText, FolderOpen, HelpCircle, ImageIcon, Rocket, Search,
   Tag, UserRound,
 } from 'lucide-react'
+import { BodyFaqNotice } from '@/components/admin/body-faq-notice'
 import { FaqFields } from '@/components/admin/faq-fields'
 import { FormatSwitch } from '@/components/admin/format-switch'
 import { FIELD_BASE } from '@/components/forms/field'
@@ -33,6 +34,9 @@ import { validateFile, type CloudinaryImage } from '@/lib/cloudinary/types'
 import { startUpload } from '@/lib/cloudinary/upload-client'
 import { bodyUrl, isStoredImageSrc } from '@/lib/cloudinary/url'
 import { slugify } from '@/lib/slug'
+/* Dependency-free, so it can run here in the browser and show a writer exactly what the
+   published page will turn into FAQ schema. The page calls the same function server-side. */
+import { extractBodyFaqs } from '@/lib/faq-extract'
 /* From the head-reading module, not lib/post-page-html.ts: importing the latter would pull
    sanitize-html into this client bundle to run four regular expressions. That split is the
    whole reason lib/post-page-meta.ts exists. */
@@ -1514,6 +1518,15 @@ export function PostEditor({
                 about 110 characters a line, which is past the point it is
                 comfortable to read. Boxes fill, sentences do not. */}
             <Panel id={panelId('faq')} label="FAQ" hidden={activeSection !== 'faq'}>
+              {/* READ ONLY WHILE THIS PANEL IS OPEN. getHTML() serialises the whole
+                  document, which is not worth doing on every render of an editor that
+                  re-renders on every keystroke. The body cannot change while this panel
+                  is showing — the writing surface is on another tab — and switching here
+                  is itself a render, so the list is always current when it is seen. */}
+              <BodyFaqNotice
+                panelCount={faqs.length}
+                bodyFaqs={activeSection === 'faq' && editor ? extractBodyFaqs(editor.getHTML()) : []}
+              />
               <FaqFields
                 faqs={faqs}
                 max={FAQ_MAX}
