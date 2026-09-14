@@ -39,6 +39,39 @@ function PostMeta({ post, className }: { post: BlogPost; className?: string }) {
   )
 }
 
+/**
+ * A card's tags, as real links to their archives.
+ *
+ * WHY THIS COULD NOT EXIST BEFORE, AND WHAT CHANGED. Each card used to be one <Link>
+ * wrapping its whole surface, so the chips inside it were plain spans: an anchor nested in
+ * an anchor is invalid HTML, and browsers repair it unpredictably. Clicking a tag clicked
+ * the card, and the reader landed on the post rather than the tag page, which is exactly
+ * what the client reported. The cards are now STRETCHED-LINK cards (see the note on the
+ * grid below): the title is the one real link and its ::after covers the card, which
+ * leaves these free to be links of their own.
+ *
+ * `data-card-above` LIFTS THEM OVER THE STRETCHED LINK. Without it the title's ::after
+ * sits on top of the chips and swallows every click, which would put back the bug this
+ * exists to fix while looking right. The rule is in globals.css beside the card rules.
+ *
+ * <TagLink>, not a chip built here, so the URL, the slug and the accessible name come from
+ * the one definition every other tag on the site uses. `className` only restates the
+ * card's quieter chip: the page-coloured fill that reads against a white card, and, on the
+ * grid, the slightly smaller size those cards have always used.
+ */
+function CardTags({ tags, className }: { tags: string[]; className?: string }) {
+  if (tags.length === 0) return null
+  return (
+    <ul data-card-above className="mt-5 flex flex-wrap gap-2">
+      {tags.map((tag) => (
+        <li key={tag}>
+          <TagLink tag={tag} className={cn('bg-page', className)} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 function CoverImage({ post }: { post: BlogPost }) {
   const url = coverImageUrl(post)
   if (!url) return null
@@ -115,8 +148,10 @@ export default async function BlogPage() {
                   a photo nobody chose. An owner who skips images should get a
                   page that looks designed that way, not one with a hole in it. */}
               <Reveal>
-                <Link
-                  href={`/blog/${featured.slug}`}
+                {/* An <article>, not a <Link>: see the note on the grid cards below for the
+                    stretched-link pattern both cards now share. */}
+                <article
+                  data-card
                   className={cn(
                     'card-pop group grid grid-cols-1 overflow-hidden rounded-card border border-line bg-surface',
                     featuredCover && 'lg:grid-cols-[1.05fr_0.95fr]'
@@ -141,31 +176,47 @@ export default async function BlogPage() {
                   >
                     <PostMeta post={featured} />
                     <h2 className="mt-4 text-[clamp(1.5rem,2.6vw,2rem)] leading-tight font-extrabold tracking-[-0.03em] text-balance text-head">
-                      {featured.title}
+                      <Link href={`/blog/${featured.slug}`} data-card-link>
+                        {featured.title}
+                      </Link>
                     </h2>
                     <p className="mt-4 max-w-[52ch] text-[16px] text-mut">{featured.description}</p>
-                    {featured.tags.length > 0 ? (
-                      <div className="mt-6 flex flex-wrap gap-2">
-                        {featured.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full border border-line bg-page px-3 py-1.5 text-[12.5px] font-semibold text-head"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
+                    <CardTags tags={featured.tags} />
                   </div>
-                </Link>
+                </article>
               </Reveal>
 
               {rest.length > 0 ? (
                 <Stagger className="mt-8 grid gap-4.5 md:grid-cols-2 lg:grid-cols-3" step={0.06}>
                   {rest.map((post) => (
                     <StaggerItem key={post.slug}>
-                      <Link
-                        href={`/blog/${post.slug}`}
+                      {/**
+                       * A STRETCHED-LINK CARD, which is what lets a tag on it be a link.
+                       *
+                       * The card used to be one <Link> around everything. That made the
+                       * whole surface a single target, which is right for a card, and made
+                       * the tags inside it dead text, which the client reported: clicking
+                       * "Paid advertising" opened the post instead of the tag page, and the
+                       * tag page existed with nothing on the listing pointing at it.
+                       *
+                       * NOW THE TITLE IS THE ONLY LINK, and its ::after is stretched over the
+                       * whole card (the [data-card-link] rule in globals.css), so a click
+                       * anywhere on the card still opens the post — the image, the date,
+                       * the description, the padding. The tags sit one layer above that
+                       * overlay and are links of their own. Two separate targets, no anchor
+                       * inside another, valid HTML.
+                       *
+                       * THE LINK'S NAME GOT BETTER AS A SIDE EFFECT. As a wrapper, the link
+                       * was announced as the title, the date, the whole description and
+                       * every tag run together. Now it is announced as the title, which is
+                       * what a link to an article should be called.
+                       *
+                       * HOVER, FOCUS AND THE WASH are unchanged to look at, but they are now
+                       * driven from [data-card] rather than from the card being an anchor —
+                       * see globals.css for the three rules that moved.
+                       */}
+                      <article
+                        data-card
                         className="card-pop group flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface"
                       >
                         {coverImageUrl(post) ? (
@@ -176,23 +227,16 @@ export default async function BlogPage() {
                         <div className="flex flex-1 flex-col p-7">
                           <PostMeta post={post} />
                           <h2 className="mt-3 text-[19px] leading-snug font-bold tracking-[-0.02em] text-head">
-                            {post.title}
+                            <Link href={`/blog/${post.slug}`} data-card-link>
+                              {post.title}
+                            </Link>
                           </h2>
                           <p className="mt-2.5 flex-1 text-[14.5px] text-mut">{post.description}</p>
-                          {post.tags.length > 0 ? (
-                            <div className="mt-5 flex flex-wrap gap-2">
-                              {post.tags.slice(0, 3).map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="rounded-full border border-line bg-page px-3 py-1 text-[12px] font-semibold text-head"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          ) : null}
+                          {/* Three at most, as before: a grid card is a teaser, and the post
+                              and the "Browse by tag" row below both carry the full set. */}
+                          <CardTags tags={post.tags.slice(0, 3)} className="py-1 text-[12px]" />
                         </div>
-                      </Link>
+                      </article>
                     </StaggerItem>
                   ))}
                 </Stagger>
@@ -201,26 +245,21 @@ export default async function BlogPage() {
           )}
 
           {/* ---- Browse by tag --------------------------------------------
-              WHY THE TAGS LIVE HERE AND NOT ON THE CARDS. Each card above is a
-              single <Link> wrapping its whole surface, which is the right
-              behaviour for a card grid — the entire thing is one target. It also
-              means a tag inside a card cannot be a link: an anchor nested in an
-              anchor is invalid HTML and is announced as one control, the same
-              constraint the admin post list documents about a delete button
-              inside a row link. Making them clickable there would mean
-              dismantling every card into a stretched-link layout and rebuilding
-              the hover and focus behaviour that .card-pop currently gives them
-              for free.
+              THIS ROW USED TO BE THE ONLY PLACE A TAG COULD BE CLICKED on this page,
+              because the cards were single links and a tag inside one could not be a
+              link of its own. The cards are stretched-link cards now and their tags
+              are real links, so that reason is gone — the client reported the dead
+              chips, and a tag that looks like a button and opens the wrong page is
+              worse than no tag.
 
-              A row of its own is the better answer anyway: it gives every tag on
-              the blog one predictable place, rather than scattering the same
-              handful across a dozen cards and asking a reader to spot a
-              repeated one. The chips on the cards stay as labels, which is what
-              they honestly are.
+              THE ROW STAYS, for the reason it was always the better half of the
+              answer: it gives every tag on the blog one predictable place. The cards
+              show three tags at most, and only for the posts that happen to be on
+              screen; this is the full set.
 
-              Below the posts, because this is the second question. Someone
-              arriving at the index wants to see what is new; browsing a subject
-              is what they do once nothing on the page has caught them. */}
+              Below the posts, because this is the second question. Someone arriving
+              at the index wants to see what is new; browsing a subject is what they do
+              once nothing on the page has caught them. */}
           {tags.length > 0 ? (
             <Reveal className="mt-16">
               <div className="border-t border-line pt-8">

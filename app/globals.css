@@ -1128,6 +1128,89 @@ html[data-intro] {
   position: relative;
   isolation: isolate;
 }
+
+/* ---- Stretched-link cards -----------------------------------------------------
+   A card that is entirely clickable but is NOT itself an anchor, because something inside
+   it has to be a link of its own. The blog index is the case: its cards carry tags, the
+   client asked for those tags to open their tag pages, and a link nested inside a card
+   that is one big link is invalid HTML. Clicking the tag clicked the card.
+
+   So the card is an <article data-card>, its title is the one real link, and that link's
+   ::after is stretched over the whole card. A click anywhere still opens the post. Anything
+   that must stay independently clickable is marked [data-card-above] and lifted over the
+   overlay.
+
+   THREE THINGS THE ANCHOR CARDS GET FOR FREE HAVE TO BE RESTATED HERE, and each one fails
+   silently if it is not:
+
+     1. POSITION AND ISOLATION. The ::after needs a positioned ancestor to stretch across,
+        and the wash below needs a stacking context or its z-index:-1 paints behind the
+        card's own white background and vanishes. :is(a, button).card-pop above supplies
+        both only to anchors.
+     2. THE WASH. It is scoped to anchors on purpose — the note above explains that it
+        promises "this whole surface is a link". These cards ARE wholly clickable, so they
+        earn it; they just are not anchors, so they have to be named.
+     3. THE FOCUS STATE. .card-pop:focus-visible cannot match an <article>, and the global
+        focus ring would land on the title link and outline three words of text rather than
+        the card a keyboard user is actually on. So the card lifts and takes the ring when
+        its link has focus, and the link's own ring is suppressed — but only inside
+        @supports selector(:has()), so a browser without :has keeps the plain ring on the
+        title rather than being left with no visible focus at all. */
+.card-pop[data-card] {
+  position: relative;
+  isolation: isolate;
+}
+[data-card] [data-card-link]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+/* Position AND z-index, and neither alone is enough. The overlay is a positioned box, and
+   positioned boxes paint above every unpositioned one in the same stacking context, so an
+   ordinary list of tags sits underneath it and every click on a tag lands on the post.
+   `position: relative` alone would only move the tags into the same layer as the overlay,
+   where document order decides — and z-index 1 settles it outright, whatever the markup
+   order becomes. */
+[data-card] [data-card-above] {
+  position: relative;
+  z-index: 1;
+  /* THE LIST LETS CLICKS THROUGH; ONLY THE LINKS IN IT CATCH THEM. Lifting the whole list
+     over the overlay lifted its empty space too — the gaps between chips and the rest of
+     the row after the last one — so a click there hit a <ul> that goes nowhere, and a
+     strip across the bottom of every card went dead. Found by hit-testing the built card
+     in a real browser, not by looking at it: nothing about a dead strip is visible. */
+  pointer-events: none;
+}
+[data-card] [data-card-above] :is(a, button) {
+  pointer-events: auto;
+}
+@supports selector(:has(*)) {
+  .card-pop[data-card]:has([data-card-link]:focus-visible) {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--color-brand) 40%, transparent);
+    box-shadow:
+      0 18px 36px -22px color-mix(in srgb, var(--color-brand) 42%, transparent),
+      0 0 0 6px color-mix(in srgb, var(--color-brand) 34%, transparent);
+    outline: 3px solid var(--focus-ring, #081422);
+    outline-offset: 2px;
+  }
+  [data-card] [data-card-link]:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-pop[data-card]:has([data-card-link]:focus-visible) {
+      transform: none;
+    }
+  }
+  @media (forced-colors: active) {
+    .card-pop[data-card]:has([data-card-link]:focus-visible) {
+      outline-color: Highlight;
+      box-shadow: none;
+    }
+  }
+}
 /* ---- Direction-aware sweep, for the pillar cards -----------------------------
    The panel enters from the edge the pointer crossed and leaves toward the edge it
    exits, driven from components/motion/sweep-card.tsx. Everything positional is set by
@@ -1169,7 +1252,8 @@ html[data-intro] {
 
 /* The diagonal brand wash is the hover for every OTHER clickable card. These six have
    the sweep instead, and running both would put an orange gradient under a navy panel. */
-:is(a, button).card-pop:not(.sweep)::before {
+:is(a, button).card-pop:not(.sweep)::before,
+.card-pop[data-card]::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1187,7 +1271,14 @@ html[data-intro] {
   );
 }
 :is(a, button).card-pop:not(.sweep):hover::before,
-:is(a, button).card-pop:not(.sweep):focus-visible::before {
+:is(a, button).card-pop:not(.sweep):focus-visible::before,
+.card-pop[data-card]:hover::before {
+  opacity: 1;
+}
+/* Kept apart from the list above rather than folded into it: a selector list is dropped
+   whole when any one selector in it is unsupported, so a browser without :has would lose
+   the hover wash on every anchor card on the site along with this one line. */
+.card-pop[data-card]:has([data-card-link]:focus-visible)::before {
   opacity: 1;
 }
 
