@@ -10,8 +10,10 @@ import { FaqSection } from '@/components/sections/faq'
 import { PostCta } from '@/components/sections/post-cta'
 import { AuthorByline } from '@/components/ui/author-byline'
 import { AuthorCard } from '@/components/ui/author-card'
-import { TagLink } from '@/components/ui/tag-link'
-import { BlogPostingSchema } from '@/lib/schema'
+import { PostTags } from '@/components/ui/post-tags'
+import { BlogPostingSchema, FaqSchema } from '@/lib/schema'
+import { extractBodyFaqs } from '@/lib/faq-extract'
+import { pageHasFaqSchema } from '@/lib/post-page-meta'
 import { getAuthorById } from '@/lib/authors'
 import {
   getPublishedPost,
@@ -137,17 +139,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
    * viewport, and on screen that read as a raw file served by accident rather than as a
    * post on a website.
    *
+   * WHAT IT KEEPS FROM THE ARTICLE LAYOUT: the tags row, the author card and the FAQ
+   * accordion, all rendered under the pasted page. The editor gives an HTML post the same
+   * Tags, Author and FAQ fields as a written one, so each has to show up here.
+   *
    * WHAT IT STILL SKIPS, each for its own reason rather than as a job lot:
    *
-   *   • <PageHero>. The pasted page opens with its own headline; ours would print the
-   *     title a second time, immediately above it.
-   *   • The cover, byline, tags, author card and FAQ. None of them has any data on an
-   *     HTML post, because the editor deliberately offers no fields for them — the
-   *     pasted document already carries everything it needs.
+   *   • <PageHero>, and with it the byline description and the category eyebrow. The
+   *     pasted page opens with its own headline and introduction; ours would print them a
+   *     second time immediately above. Both fields still show — on the post's cards.
+   *   • The cover and the author byline row. The page lays out its own top.
    *   • The mid-article CTA and the prose column. Both assume a body of prose that the
    *     site is laying out. Here the page lays itself out.
-   *
-   * It also skips three database reads that only fed the parts above.
+   *   • "More from the blog" and the CTA band, which an HTML post never had.
    *
    * THE SCHEMA IS CONDITIONAL, NOT ABSENT. The boundary preserves
    * `<script type="application/ld+json">` precisely so a page can bring its own, and two
@@ -156,6 +160,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
    */
   if (post.format === 'html') {
     const doc = htmlPostDocument(post.contentHtml)
+    /* The same author lookups the article layout makes below: the person for the card and
+       the schema, and their published count for the link out of the card. */
+    const htmlAuthor = post.authorId ? await getAuthorById(post.authorId) : null
+    const htmlAuthorPostCount = htmlAuthor
+      ? (await getPublishedPostsByAuthor(htmlAuthor.id)).length
+      : 0
     return (
       <>
         {doc.hasStructuredData ? null : (
@@ -166,10 +176,58 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             publishedAt={post.publishedAt}
             updatedAt={post.updatedAt}
             imageUrl={coverImageUrl(post)}
-            author={null}
+            author={htmlAuthor}
           />
         )}
         <HtmlPost html={post.contentHtml} />
+
+        {/**
+         * THE POST'S OWN END MATTER, UNDER THE PASTED PAGE.
+         *
+         * An HTML post now takes the same tags, author and FAQ fields in the editor as a
+         * written one, and each has to do something on the page rather than sit in the
+         * database. So the page ends the way an article does: the tags, then the "written
+         * by" card, then the FAQ accordion — the same components, in the same order, at the
+         * same measure. A reader should not be able to tell from the end of the page which
+         * editor a post came from.
+         *
+         * BELOW THE PAGE, NEVER INSIDE OR ABOVE IT. The pasted document owns its own layout
+         * from its first element to its last; anything the site adds goes after that, where
+         * it cannot land in the middle of someone else's design.
+         *
+         * WHAT THE OTHER TWO FIELDS DO, since they have no slot here: the byline description
+         * and the category are shown on the post's CARDS — the blog index, tag pages and
+         * author pages — through the same card components every post uses. They are not
+         * printed on this page because the pasted page opens with its own headline and
+         * introduction, and ours would repeat them above it.
+         */}
+        {post.tags.length > 0 || htmlAuthor ? (
+          <Section spacing="none" className="pb-4">
+            <Container>
+              <Reveal>
+                <PostTags tags={post.tags} />
+              </Reveal>
+              {htmlAuthor ? (
+                <Reveal className={post.tags.length > 0 ? 'mt-12' : undefined}>
+                  <div className="mx-auto max-w-[68ch]">
+                    <AuthorCard author={htmlAuthor} postCount={htmlAuthorPostCount} />
+                  </div>
+                </Reveal>
+              ) : null}
+            </Container>
+          </Section>
+        ) : null}
+
+        {/* Schema only when the pasted page did not bring its own FAQPage — see the note
+            on the `schema` prop in components/sections/faq.tsx. The questions in the panel
+            still render as the accordion either way. */}
+        <FaqSection
+          faqs={post.faqs}
+          eyebrow="FAQ"
+          heading="Frequently asked questions"
+          spacing="compact"
+          schema={!pageHasFaqSchema(doc.head)}
+        />
       </>
     )
   }
@@ -190,6 +248,25 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   /* Only for a named author, and only to put a number on the link out of the
      card — a post published under the company has no profile to count. */
   const authorPostCount = author ? (await getPublishedPostsByAuthor(author.id)).length : 0
+  /**
+   * FAQ SCHEMA FOR QUESTIONS TYPED INTO THE ARTICLE, when the FAQ panel is empty.
+   *
+   * The client's review found a live post with an "FAQs" heading and four bold questions
+   * in its body, every one visible to readers, and no FAQPage schema — because schema only
+   * ever came from the editor's FAQ panel, and nobody uses a panel when they can just type.
+   * extractBodyFaqs() recognises that shape; see lib/faq-extract.ts for exactly what it will
+   * and will not accept, which is deliberately little.
+   *
+   * THE PANEL WINS, ALWAYS. Where a writer has filled it in, those are the questions they
+   * chose to publish as data, and <FaqSection> below renders them as the accordion and the
+   * schema together. The body is only read when the panel is empty, so a page can never
+   * carry two FAQPage blocks, and a deliberate entry is never overruled by a guess.
+   *
+   * SCHEMA ONLY, NO ACCORDION. These questions are already on the page, in the article,
+   * where the writer put them. Rendering them a second time as an accordion would print
+   * every question twice.
+   */
+  const bodyFaqs = post.faqs.length === 0 ? extractBodyFaqs(post.contentHtml) : []
 
   return (
     <>
@@ -208,7 +285,17 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         eyebrow={`${post.category ? `${post.category} · ` : ''}${formatPostDate(post.publishedAt)} · ${post.readingMinutes} min read`}
         heading={post.title}
         /**
-         * THE INTRODUCTION, NOT THE META DESCRIPTION.
+         * THE BYLINE DESCRIPTION, AND NOTHING WHEN THERE IS NONE.
+         *
+         * NO FALLBACK TO THE META DESCRIPTION ANY MORE. This used to print
+         * `excerpt || description`, so a post without a byline showed its search snippet
+         * here — and on every card listing it. The client flagged exactly that, and asked
+         * for the byline to be a field the admin writes, shown when it is written. An empty
+         * one now leaves the hero with a title and no line under it, which reads as
+         * intended; a search snippet in a reader's position does not.
+         *
+         * The history below is why the field was separate from the description in the
+         * first place.
          *
          * This slot used to print `post.description`, which is written for a
          * search result: front-loaded with the terms someone would type, capped
@@ -217,12 +304,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
          * has already decided — and a line written to win a click reads, in that
          * position, like the page repeating its own listing back at you.
          *
-         * `excerpt` is the standfirst a writer composes for exactly this spot.
-         * Falling back to the description keeps every post published before the
-         * field existed looking precisely as it did, so nothing needed migrating
-         * — see the note on BlogPost.excerpt.
+         * `excerpt` is the byline description a writer composes for exactly this
+         * spot, in the Content panel of the editor. See the note on BlogPost.excerpt.
          */
-        sub={post.excerpt || post.description}
+        sub={post.excerpt?.trim() || undefined}
         trail={[
           { name: 'Home', href: '/' },
           { name: 'Insights', href: '/blog' },
@@ -329,29 +414,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               />
             )}
 
-            {post.tags.length > 0 ? (
-              <div className="mx-auto mt-12 flex max-w-[68ch] flex-wrap items-baseline gap-x-3 gap-y-2">
-                <span className="font-mono text-[11px] tracking-[0.2em] text-mut-2 uppercase">
-                  Tagged
-                </span>
-                {/* LINKS NOW, WHERE THESE WERE LABELS. A tag that is printed and
-                    does nothing is the worst of both: it looks like a control and
-                    reads as a promise of more on the subject. <TagLink> points each
-                    one at its archive.
-
-                    SAFE TO LINK HERE, WHICH IS NOT TRUE EVERYWHERE. This row sits in
-                    ordinary page flow, so an anchor is just an anchor. The cards on
-                    the blog index are themselves one big anchor, and a link inside a
-                    link is invalid HTML — see the note there. */}
-                <ul className="flex flex-wrap gap-2">
-                  {post.tags.map((tag) => (
-                    <li key={tag}>
-                      <TagLink tag={tag} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
+            {/* The shared "Tagged" row — the same component an HTML-page post ends with,
+                so the two kinds of post cannot drift apart. See components/ui/post-tags.tsx. */}
+            <PostTags tags={post.tags} className="mt-12" />
           </Reveal>
 
           {/* AFTER THE TAGS, BEFORE ANYTHING THAT LEADS AWAY. The reader has just
@@ -386,6 +451,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         heading="Frequently asked questions"
         spacing="compact"
       />
+      {/* Empty whenever the panel above has questions — see the note on bodyFaqs. */}
+      <FaqSchema faqs={bodyFaqs} />
 
       {more.length > 0 ? (
         <Section spacing="compact">

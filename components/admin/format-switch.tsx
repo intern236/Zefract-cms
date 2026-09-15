@@ -41,7 +41,7 @@ const OPTIONS: {
     value: 'html',
     label: 'HTML page',
     icon: Code2,
-    hint: 'Paste a whole HTML page. Published as itself, inside the site’s header and footer.',
+    hint: 'Paste a whole HTML page. Published inside the site’s header and footer, followed by its tags, author and FAQ.',
   },
 ]
 

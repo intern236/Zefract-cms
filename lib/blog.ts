@@ -48,10 +48,34 @@ export interface BlogPost {
   id: string
   slug: string
   title: string
-  /** The SERP description and the card excerpt. One field, so they cannot disagree. */
+  /**
+   * The meta description: what a search result shows, and what share cards and the
+   * structured data carry. NEVER PRINTED ON THE SITE ITSELF.
+   *
+   * It used to double as the text on every post card and the line under a post's title.
+   * The client flagged the card: copy written for a search result — front-loaded with the
+   * terms someone would type, cut near 160 characters — was being read by people already on
+   * the page. Both spots now print `excerpt`, the byline description, and nothing else.
+   */
   description: string
   /**
-   * The standfirst printed under the headline, in the post's own voice.
+   * The BYLINE DESCRIPTION: the line under the title, written for readers.
+   *
+   * SHOWN IN EVERY PLACE A POST APPEARS — the blog index cards, the tag archive, an
+   * author's page, and under the headline on the post itself — through
+   * <BylineDescription>, so the rule lives in one component. Labelled "Byline
+   * description" in the editor's Content panel.
+   *
+   * NO FALLBACK. Empty renders nothing, anywhere. It used to fall back to `description`,
+   * which is how the meta description ended up on the cards; the client asked for this to
+   * be a field the admin writes and shown only when they have.
+   *
+   * THE STORAGE KEY IS STILL `excerpt`, and the field is the one that was called
+   * "Introduction", renamed rather than replaced. Adding a second field would have left the
+   * editor with two boxes for the same line, and keeping the key means every introduction
+   * already written becomes a byline with nothing migrated.
+   *
+   * Why it is a separate field from `description` at all:
    *
    * A SECOND FIELD, BECAUSE THE FIRST WAS DOING TWO JOBS. `description` is
    * written for a search result: about 160 characters, front-loaded with the
@@ -60,11 +84,6 @@ export interface BlogPost {
    * arrived, and its job is to make them keep going. Those are different pieces
    * of writing, and the page used to print the SERP one in the reader's
    * position — so every post opened with a line optimised for a machine.
-   *
-   * NULL FALLS BACK TO `description`, which is exactly what the page did before,
-   * so every post published so far keeps the standfirst it already had and
-   * nothing needs migrating. It stops being a fallback the moment somebody
-   * writes an introduction.
    */
   excerpt: string | null
   /**
@@ -78,9 +97,10 @@ export interface BlogPost {
    *
    * 'html' IS A WHOLE PAGE, pasted in and published as itself. The body went through the
    * much wider boundary in lib/post-page-html.ts instead, and the post page renders it
-   * alone — no hero, no prose column, and the site's own header and footer suppressed.
-   * That is the point of it: somebody arrives with a finished page and wants the finished
-   * page, not this site's frame around a fragment of it.
+   * inside the site's header and footer with no hero and no prose column — somebody
+   * arrives with a finished page and wants the finished page, not this site's frame
+   * around a fragment of it. Its tags, author card and FAQ are rendered under it, and its
+   * byline description and category on its cards, exactly as for a written post.
    *
    * ABSENT ON EVERY POST WRITTEN SO FAR, which is why asPostFormat defaults to 'editor'
    * rather than requiring the field. Nothing needs migrating, and a document written
@@ -214,8 +234,9 @@ export const POST_LIMITS = {
    * as a summary.
    */
   description: 320,
-  /** The standfirst. Longer than the description because it is read on the page
-   *  rather than inside a result, so nothing is truncating it at 160. */
+  /** The byline description. Longer than the meta description because it is read on
+   *  the page rather than inside a result; the cards clamp it to three lines, so a long
+   *  one never makes a card taller than its neighbours. */
   excerpt: 400,
   category: 60,
   tag: 40,
@@ -608,9 +629,9 @@ function toPost(doc: WithId<Document>): BlogPost {
     slug: String(doc.slug),
     title: String(doc.title),
     description: String(doc.description),
-    /* Null rather than an empty string for an absent standfirst, so the render
-       path's `excerpt || description` fallback fires on a post written before
-       the field existed as well as on one whose field was cleared. */
+    /* Null rather than an empty string for an absent byline description, so a post
+       written before the field existed and one whose field was cleared read the same
+       way: as having none, which <BylineDescription> renders as nothing. */
     excerpt: doc.excerpt ? String(doc.excerpt) : null,
     contentHtml: String(doc.contentHtml),
     coverImage: toCloudinaryImage(doc.coverImage),

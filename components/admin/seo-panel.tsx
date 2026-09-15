@@ -256,8 +256,9 @@ export function SeoPanel({
               <InlineCounter value={description.length} max={DESCRIPTION_MAX} top />
             </div>
             <p className="mt-1.5 text-[12.5px] text-mut-2">
-              Doubles as the card text on the blog index — one field, so the two cannot
-              disagree.
+              For search results only — it is not shown on the site. The line under the
+              title on blog cards and on the post is the Byline description, in the
+              Content panel.
             </p>
             {/* Only once it is over, so the ordinary case stays quiet. It says what
                 happens rather than telling the writer off: the description publishes

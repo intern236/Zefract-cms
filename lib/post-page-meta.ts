@@ -94,6 +94,28 @@ export function pageDescription(html: string): string | null {
 }
 
 /**
+ * Whether a pasted page already publishes its own FAQPage structured data.
+ *
+ * Used on both sides of the same decision: the post page renders the FAQ panel's questions
+ * as an accordion WITHOUT a second FAQPage block when this is true, and the admin editor
+ * tells the writer so before they save. Both call this one function, so what the editor
+ * promises and what the page does cannot disagree.
+ *
+ * READ FROM THE JSON-LD, and only as far as the type. `@type` may be a string or an array
+ * ("@type": ["FAQPage", "WebPage"] is valid), so both shapes are matched. Script contents
+ * are deliberately NOT masked here the way pageTitle masks them — the JSON-LD is exactly
+ * the part being read.
+ */
+export function pageHasFaqSchema(html: string): boolean {
+  for (const match of html.matchAll(
+    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  )) {
+    if (/"@type"\s*:\s*(?:"FAQPage"|\[[^\]]*"FAQPage")/.test(match[1])) return true
+  }
+  return false
+}
+
+/**
  * The five entities that actually turn up in a hand-written title.
  *
  * NOT A GENERAL DECODER, and it does not need to be. These strings are stored in text

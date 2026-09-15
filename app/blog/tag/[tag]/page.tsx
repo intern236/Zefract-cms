@@ -5,7 +5,7 @@ import { PageHero } from '@/components/ui/page-hero'
 import { Container, Section } from '@/components/ui/section'
 import { Reveal } from '@/components/motion/reveal'
 import { CtaBand } from '@/components/sections/cta-band'
-import { TagLink } from '@/components/ui/tag-link'
+import { BylineDescription } from '@/components/ui/byline-description'
 import {
   coverImageSrcSet,
   coverImageUrl,
@@ -98,11 +98,6 @@ export default async function BlogTagPage({
      that ever stops being true is a heading over nothing. */
   if (posts.length === 0) notFound()
 
-  /* The other tags, for a reader who wants a neighbouring subject rather than
-     this one. Excludes the current tag: a chip linking to the page you are on is
-     a dead control, which is the fault this whole feature exists to fix. */
-  const others = (await getPublishedTags()).filter((other) => other.slug !== entry.slug)
-
   return (
     <>
       <PageHero
@@ -116,7 +111,11 @@ export default async function BlogTagPage({
         ]}
       />
 
-      <Section spacing="tight" className="pb-24">
+      {/* pb-4, NOT pb-24. <CtaBand> below already opens with its own 112–128px top
+          margin, and the extra 96px here stacked on it into a gap taller than a post card
+          — worst once the "Other tags" row that used to fill it was removed. pb-4 is what
+          the post pages leave above the section that follows them, so the rhythm matches. */}
+      <Section spacing="tight" className="pb-4">
         <Container>
           <ul className="grid gap-4.5 md:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => {
@@ -154,9 +153,12 @@ export default async function BlogTagPage({
                         <h2 className="mt-3 text-[19px] leading-snug font-bold tracking-[-0.02em] text-head">
                           {post.title}
                         </h2>
-                        <p className="mt-2.5 flex-1 text-[14.5px] text-mut">
-                          {post.description}
-                        </p>
+                        {/* The byline description, the same as the blog index cards — see
+                            components/ui/byline-description.tsx for why never the meta one. */}
+                        <BylineDescription
+                          post={post}
+                          className="mt-2.5 line-clamp-3 text-[14.5px]"
+                        />
                       </div>
                     </Link>
                   </Reveal>
@@ -164,21 +166,6 @@ export default async function BlogTagPage({
               )
             })}
           </ul>
-
-          {others.length > 0 ? (
-            <div className="mt-16 border-t border-line pt-8">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-mut uppercase">
-                Other tags
-              </p>
-              <ul className="mt-5 flex flex-wrap gap-2">
-                {others.map((other) => (
-                  <li key={other.slug}>
-                    <TagLink tag={other.tag} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </Container>
       </Section>
 

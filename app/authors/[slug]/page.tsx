@@ -6,6 +6,7 @@ import { Container, Section } from '@/components/ui/section'
 import { Reveal } from '@/components/motion/reveal'
 import { CtaBand } from '@/components/sections/cta-band'
 import { AuthorAvatar } from '@/components/ui/author-avatar'
+import { BylineDescription } from '@/components/ui/byline-description'
 import { LinkedInGlyph, XGlyph } from '@/components/ui/social-icons'
 import { PersonSchema } from '@/lib/schema'
 import { authorLinks, getAuthorBySlug, getPublicAuthors } from '@/lib/authors'
@@ -200,9 +201,8 @@ export default async function AuthorPage({ params }: { params: Promise<{ slug: s
                         <p className="mt-3 text-[19px] leading-snug font-bold text-balance text-head">
                           {post.title}
                         </p>
-                        <p className="mt-2.5 line-clamp-3 text-[15px] text-mut">
-                          {post.description}
-                        </p>
+                        {/* The byline description, as on every other post card. */}
+                        <BylineDescription post={post} className="mt-2.5 line-clamp-3 text-[15px]" />
                       </div>
                     </Link>
                   </Reveal>
