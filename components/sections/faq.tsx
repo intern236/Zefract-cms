@@ -20,19 +20,30 @@ export function FaqSection({
   eyebrow = 'Questions',
   heading = 'Asked before the first call.',
   spacing = 'default',
+  schema = true,
 }: {
   faqs: Faq[]
   eyebrow?: string
   heading?: string
   /** Defaults to the site rhythm. The Services pages pass `compact` — see <Section>. */
   spacing?: 'default' | 'compact'
+  /**
+   * Whether to emit FAQPage JSON-LD alongside the accordion. True everywhere but one place.
+   *
+   * THE EXCEPTION IS AN HTML-PAGE POST WHOSE PASTED PAGE ALREADY CARRIES ITS OWN FAQPage.
+   * That structured data is preserved verbatim, so rendering this with schema on top would
+   * put two FAQPage blocks on one URL — two answers to "what does this page answer", which is
+   * how a page ends up telling a search engine two different things about itself. The
+   * accordion is still wanted; only the second copy of the data is not.
+   */
+  schema?: boolean
 }) {
   if (faqs.length === 0) return null
 
   return (
     <Section id="faq" spacing={spacing}>
       <Container>
-        <FaqSchema faqs={faqs} />
+        {schema ? <FaqSchema faqs={faqs} /> : null}
         <SectionHead eyebrow={eyebrow} heading={heading} />
 
         {/* The accordion reveals as one block rather than row by row. Radix tracks

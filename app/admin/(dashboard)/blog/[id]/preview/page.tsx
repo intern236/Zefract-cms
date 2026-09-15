@@ -8,9 +8,10 @@ import { FaqSection } from '@/components/sections/faq'
 import { PostCta } from '@/components/sections/post-cta'
 import { AuthorByline } from '@/components/ui/author-byline'
 import { AuthorCard } from '@/components/ui/author-card'
-import { TagLink } from '@/components/ui/tag-link'
+import { PostTags } from '@/components/ui/post-tags'
 import { getAuthorById } from '@/lib/authors'
 import { extractBodyFaqs } from '@/lib/faq-extract'
+import { pageHasFaqSchema } from '@/lib/post-page-meta'
 import { FaqSchema } from '@/lib/schema'
 import {
   getPostById,
@@ -45,9 +46,8 @@ import { cn } from '@/lib/utils'
  * The banner, lifted out of the markup because there are now two renders that need it.
  *
  * It is the whole difference between this route and the live page, so it is unmissable and
- * states which of the two you are looking at. On an HTML post it is the ONLY thing on
- * screen that says "admin" — that format hides the site's own header — which is why it is
- * shared rather than duplicated with a comment asking someone to keep the two in step.
+ * states which of the two you are looking at. Both post formats render it, which is why it
+ * is shared rather than duplicated with a comment asking someone to keep the two in step.
  */
 function PreviewBanner({ post }: { post: { id: string; status: string } }) {
   return (
@@ -75,22 +75,46 @@ export default async function PreviewPostPage({ params }: { params: Promise<{ id
   if (!post) notFound()
 
   /**
-   * AN HTML POST PREVIEWS AS THE PAGE.
+   * AN HTML POST PREVIEWS AS THE PAGE, WITH ITS END MATTER.
    *
-   * Everything below the banner is skipped for the same reasons app/blog/[slug]/page.tsx
-   * skips it — see the note there. The banner itself stays: it is the one thing on screen
-   * saying which of the two you are looking at, and it is the only chrome here the live
-   * page will not have, which is exactly what a preview banner is for.
+   * The pasted page, then the tags, the author card and the FAQ accordion — exactly what
+   * app/blog/[slug]/page.tsx renders for this format, and skipping what it skips for the
+   * reasons given there. The banner is the only chrome here the live page will not have,
+   * which is exactly what a preview banner is for.
    *
-   * NO SCHEMA, unlike the live page. A preview is not indexed — robots.txt disallows
-   * /admin and the layout marks it noindex — so the conditional BlogPostingSchema there
-   * has nothing to be right about here.
+   * NO BlogPostingSchema, unlike the live page. A preview is not indexed — robots.txt
+   * disallows /admin and the layout marks it noindex — so there is nothing for it to be
+   * right about here. The FAQ accordion keeps its own schema rule, so a writer checking the
+   * preview in a validator sees the same FAQPage decision the live page will make.
    */
   if (post.format === 'html') {
+    const htmlAuthor = post.authorId ? await getAuthorById(post.authorId) : null
     return (
       <>
         <PreviewBanner post={post} />
         <HtmlPost html={post.contentHtml} />
+        {/* The same end matter the published page renders under the pasted page — tags,
+            author card, FAQ accordion — so the preview shows what a writer set in those
+            panels. See the note in app/blog/[slug]/page.tsx. */}
+        {post.tags.length > 0 || htmlAuthor ? (
+          <Section spacing="none" className="pb-4">
+            <Container>
+              <PostTags tags={post.tags} />
+              {htmlAuthor ? (
+                <div className={cn('mx-auto max-w-[68ch]', post.tags.length > 0 && 'mt-12')}>
+                  <AuthorCard author={htmlAuthor} />
+                </div>
+              ) : null}
+            </Container>
+          </Section>
+        ) : null}
+        <FaqSection
+          faqs={post.faqs}
+          eyebrow="FAQ"
+          heading="Frequently asked questions"
+          spacing="compact"
+          schema={!pageHasFaqSchema(post.contentHtml)}
+        />
       </>
     )
   }
@@ -114,10 +138,10 @@ export default async function PreviewPostPage({ params }: { params: Promise<{ id
           post.category ? ` · ${post.category}` : ''
         }`}
         heading={post.title}
-        /* The introduction where there is one, exactly as the published page
-           resolves it — this page exists to show the post as a visitor will see
-           it, so the two have to fall back the same way. */
-        sub={post.excerpt || post.description}
+        /* The byline description, or nothing, exactly as the published page does —
+           no fallback to the meta description on either. This page exists to show
+           the post as a visitor will see it, so the two have to agree. */
+        sub={post.excerpt?.trim() || undefined}
       />
 
       <Section spacing="tight" className="pb-24">
@@ -177,20 +201,9 @@ export default async function PreviewPostPage({ params }: { params: Promise<{ id
             />
           )}
 
-          {post.tags.length > 0 ? (
-            <div className="mx-auto mt-12 flex max-w-[68ch] flex-wrap items-baseline gap-x-3 gap-y-2">
-              <span className="font-mono text-[11px] tracking-[0.2em] text-mut-2 uppercase">
-                Tagged
-              </span>
-              <ul className="flex flex-wrap gap-2">
-                {post.tags.map((tag) => (
-                  <li key={tag}>
-                    <TagLink tag={tag} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          {/* The shared "Tagged" row — the same component an HTML-page post ends with,
+              so the two kinds of post cannot drift apart. See components/ui/post-tags.tsx. */}
+          <PostTags tags={post.tags} className="mt-12" />
 
           {/* The "written by" card, as the published page renders it. Nothing for
               a post under the company byline. */}

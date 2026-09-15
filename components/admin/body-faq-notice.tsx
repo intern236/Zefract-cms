@@ -27,10 +27,38 @@ import type { ExtractedFaq } from '@/lib/faq-extract'
 export function BodyFaqNotice({
   bodyFaqs,
   panelCount,
+  pageHasFaqSchema = false,
 }: {
   bodyFaqs: ExtractedFaq[]
   panelCount: number
+  /**
+   * An HTML-page post whose pasted page already carries FAQPage JSON-LD.
+   *
+   * The third state, and the only one an HTML post can reach: questions are never read out
+   * of a pasted page's body (it is arbitrary markup, not the editor's known shape), but its
+   * own structured data is preserved. The post page then renders this panel's questions as
+   * an accordion WITHOUT a second FAQPage block, and the writer should know that before
+   * they wonder why a validator shows only the page's own questions.
+   */
+  pageHasFaqSchema?: boolean
 }) {
+  if (pageHasFaqSchema) {
+    return (
+      <div
+        role="note"
+        className="mb-5 flex items-start gap-2.5 rounded-[12px] border border-line bg-page px-4 py-3 text-[13px] leading-[1.55] text-head"
+      >
+        <Info className="mt-0.5 size-4 shrink-0 text-mut-2" aria-hidden="true" />
+        <p>
+          Your HTML page already includes its own FAQ schema, and that is what search engines
+          get. {panelCount > 0 ? 'The questions here' : 'Any questions you add here'} show as an
+          accordion under the page, but are not published as a second FAQ schema: one page, one
+          set of FAQ data.
+        </p>
+      </div>
+    )
+  }
+
   if (bodyFaqs.length === 0) return null
   const found = bodyFaqs.length === 1 ? '1 question' : `${bodyFaqs.length} questions`
 

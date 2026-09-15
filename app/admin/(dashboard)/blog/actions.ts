@@ -45,7 +45,7 @@ export type PostPayload = {
   title: unknown
   slug: unknown
   description: unknown
-  /** The on-page standfirst. Empty means the description stands in for it. */
+  /** The byline description, shown on post cards and under the title. Empty shows nothing. */
   excerpt: unknown
   /** Comma-separated, as typed. Parsed and capped here. */
   tags: unknown
@@ -218,7 +218,7 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
     errors.slug = `“${slug}” is reserved for the tag archive. Try different words.`
   }
   if (excerpt.length > POST_LIMITS.excerpt) {
-    errors.excerpt = `Keep the introduction under ${POST_LIMITS.excerpt} characters.`
+    errors.excerpt = `Keep the byline description under ${POST_LIMITS.excerpt} characters.`
   }
   if (faqs.some((faq) => faq.question.length > POST_LIMITS.faqQuestion)) {
     errors.faqs = `Keep each question under ${POST_LIMITS.faqQuestion} characters.`
@@ -229,8 +229,8 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
   if (!description) {
     errors.description =
       format === 'html'
-        ? 'Your HTML has no <meta name="description">. Add one — it is the search snippet and the blog card text.'
-        : 'Write the one-sentence description — it is the search snippet and the card text.'
+        ? 'Your HTML has no <meta name="description">. Add one — it is what search results show.'
+        : 'Write the one-sentence description — it is what search results show.'
   }
   else if (description.length > POST_LIMITS.description) {
     errors.description = `Longer than we store (${POST_LIMITS.description} characters).`
@@ -389,9 +389,8 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
     slug: finalSlug,
     title,
     description,
-    /* Null rather than '' so lib/blog.ts reads it back as absent and the page's
-       `excerpt || description` fallback fires, which is what a cleared field
-       should do: go back to the behaviour the post had before. */
+    /* Null rather than '' so lib/blog.ts reads it back as absent, and a cleared byline
+       description shows nothing on the cards or under the title. */
     excerpt: excerpt || null,
     faqs,
     format,

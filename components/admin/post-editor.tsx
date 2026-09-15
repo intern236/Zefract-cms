@@ -42,6 +42,7 @@ import { extractBodyFaqs } from '@/lib/faq-extract'
    whole reason lib/post-page-meta.ts exists. */
 import {
   pageDescription,
+  pageHasFaqSchema,
   pageTitle,
   pageWordCount,
   type PostFormat,
@@ -77,7 +78,7 @@ export type EditorPost = {
   title: string
   slug: string
   description: string
-  /** The standfirst under the headline. Null falls back to `description`. */
+  /** The byline description: shown on post cards and under the title. Null shows nothing. */
   excerpt: string | null
   category: string | null
   tags: string[]
@@ -116,6 +117,9 @@ const FAQ_MAX = 12
 const FAQ_QUESTION_MAX = 200
 const FAQ_ANSWER_MAX = 900
 const EXCERPT_MAX = 400
+
+/** The editor sections an HTML-page post does not get. See the filter on `sections`. */
+const HTML_HIDDEN_SECTIONS = new Set(['cover', 'seo'])
 
 /**
  * How long after typing stops before a draft saves itself. Three seconds is
@@ -571,11 +575,13 @@ export function PostEditor({
   /**
    * The page's own title and description, read live out of the paste box.
    *
-   * THIS IS WHY AN HTML POST HAS NO FIELDS. Everything the editor would otherwise ask
-   * for is already in the document somebody pasted: the `<title>`, the meta description,
-   * the headings, the structured data. Asking again would be asking a writer to keep two
-   * copies of the same fact in step, and the copy that loses is always the one nobody can
-   * see from where they are working.
+   * THIS IS WHY AN HTML POST HAS NO TITLE OR DESCRIPTION FIELD, though it has the others.
+   * Both are already in the document somebody pasted — the `<title>` and the meta
+   * description — and asking again would be asking a writer to keep two copies of the
+   * same fact in step, where the copy that loses is always the one nobody can see from
+   * where they are working. Tags, author, category, FAQ and the byline description are a
+   * different matter: a pasted page carries none of them in a form the site can use, so
+   * those ARE fields, in their usual tabs.
    *
    * SO THE PAGE IS THE SOURCE. These two are read back out of it, shown in the panel so
    * the writer can confirm they were found, and sent as the post’s stored title and
@@ -896,19 +902,24 @@ export function PostEditor({
     },
   ]
   /**
-   * A PASTED PAGE HAS NO SECTIONS, and that is the whole shape of this format.
+   * WHICH SECTIONS A PASTED PAGE GETS: Content, Category, Author, Tags and FAQ.
    *
-   * Every panel in this list asks for something the pasted document already carries.
-   * SEO reads a title and a description the page has in its own head. Cover, Category,
-   * Author and Tags decorate an article layout that an HTML post returns before
-   * reaching. FAQ would be stored, emit no accordion and no schema, and quietly
-   * convince whoever filled it in that the post has an FAQ.
+   * Each of those now does something on the site for an HTML post, which is the only test
+   * a panel has to pass to be offered — a control whose value goes nowhere is worse than an
+   * absent one, because it makes a promise about the published page that the page does not
+   * keep. What each one reaches:
    *
-   * A control that does nothing is worse than an absent one: it does not just waste a
-   * click, it makes a promise about the published page that the published page does not
-   * keep. So the nav goes with them, and what is left is the paste box and Save.
+   *   Tags     — the "Tagged" row under the page, the chips on its cards, the tag pages
+   *   Author   — the "written by" card under the page, the author's profile, the schema
+   *   FAQ      — the accordion under the page, with schema unless the page has its own
+   *   Category — the date line on its cards
+   *   (and the Byline description, in Content, is the line on its cards)
+   *
+   * TWO STAY HIDDEN, for the reason the rule gives. SEO reads a title and description the
+   * pasted page already carries in its own head, and the editor shows those as read-only
+   * readouts at the top. Cover Image decorates a hero an HTML post does not render.
    */
-    .filter(() => !isPage)
+    .filter((entry) => !isPage || !HTML_HIDDEN_SECTIONS.has(entry.id))
 
   /* Landing on a section that has just been filtered away would show an empty middle
      column with no tab selected. Switching format sends you back to the body, which is
@@ -1070,8 +1081,7 @@ export function PostEditor({
       ) : null}
 
       <div className="mt-4 flex flex-col gap-4 md:flex-row">
-        {/* The nav goes with the sections it navigates. See the filter on `sections`. */}
-        <aside className={cn('shrink-0 md:w-[188px]', isPage && 'hidden')}>
+        <aside className="shrink-0 md:w-[188px]">
           <div className={cn('rounded-card border border-line bg-surface md:sticky', PANEL_TOP)}>
             <EditorNav
               sections={sections}
@@ -1177,7 +1187,7 @@ export function PostEditor({
                     )}
                   >
                     {detectedDescription ??
-                      'No meta description in your HTML yet. Add one — it is the search snippet and the blog card text.'}
+                      'No meta description in your HTML yet. Add one — it is what search results show.'}
                   </span>
                 </div>
               ) : null}
@@ -1240,29 +1250,31 @@ export function PostEditor({
             </div>
             {errors.slug ? <p className="mt-1 px-1 text-[12.5px] text-red-600">{errors.slug}</p> : null}
 
-            {/* ---- The introduction ---------------------------------------
-                Between the permalink and the body, which is where it is on the
-                published page: title, then standfirst, then the piece.
+            {/* ---- The byline description --------------------------------
+                The line under the title, written for readers. Shown on every post
+                card — the blog index, tag pages, author pages — and under the
+                headline on the post itself, through <BylineDescription>.
 
-                IN THE CONTENT PANEL, NOT THE SEO ONE, and the distinction is the
-                whole reason this field exists. The meta description in SEO is
-                written for a result — front-loaded with search terms, cut near
-                160 characters, read by a stranger deciding whether to click.
-                This is read by someone who has already arrived. The page printed
-                the SEO line here until now, so every post opened with copy aimed
-                at a machine.
+                IT WAS CALLED "INTRODUCTION", printed only on the post, and fell back to
+                the meta description when left empty. That fallback is how the SEO
+                snippet ended up on the blog cards, which the client flagged. So the
+                field is named for where it shows, and the fallback is gone: empty means
+                no line at all, anywhere. Anything already typed as an introduction
+                carries straight over — the stored key did not change.
 
-                ALWAYS VISIBLE, like the title and permalink above it, rather than
-                behind the section nav: it is part of the document's opening, and
-                a writer settling the first line of a piece should not have to go
-                and find the field. */}
-            {/* Hidden for a pasted page: the standfirst is printed by <PageHero>, which
-                an HTML post returns before reaching. A field whose value is never shown
-                is a question with nowhere to put the answer. */}
-            <div className={cn('mt-4 rounded-tile border border-line bg-surface p-5', shown('content'), isPage && 'hidden')}>
+                IN THE CONTENT PANEL, NOT THE SEO ONE, because it is copy on the page.
+                The meta description in SEO is written for a search result; this is
+                written for someone already on the site.
+
+                ALWAYS VISIBLE, like the title and permalink above it, because it is part
+                of how the post opens rather than a setting behind a tab. */}
+            {/* In both formats. On an HTML post it is the line on the post's CARDS only:
+                the pasted page opens with its own introduction, so ours is not printed
+                above it. The hint below says which, so nobody expects it on the page. */}
+            <div className={cn('mt-4 rounded-tile border border-line bg-surface p-5', shown('content'))}>
               <div className="flex items-baseline justify-between gap-3">
                 <Label htmlFor="excerpt" className="text-[13.5px] font-semibold text-head">
-                  Introduction
+                  Byline description
                 </Label>
                 <span className="font-mono text-[12px] tracking-[0.12em] text-mut-2 uppercase sm:text-[10px]">
                   Optional
@@ -1277,15 +1289,23 @@ export function PostEditor({
                   setExcerpt(event.target.value)
                   touch()
                 }}
-                placeholder="The line under the headline — what this piece is about, in your own voice…"
+                placeholder="One or two sentences on what this post is about, written for readers…"
                 aria-invalid={errors.excerpt ? true : undefined}
                 className={cn(FIELD_BASE, 'mt-2 min-h-20 px-4 py-3 text-[14px] leading-relaxed')}
               />
               <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                {/* Says where the text goes, and — just as important — that leaving it
+                    empty does NOT bring the meta description back. The old hint said the
+                    opposite, and a writer who remembers it would otherwise leave this
+                    blank expecting a line to appear. */}
                 <p className="text-[12.5px] text-mut-2">
-                  {excerpt.trim()
-                    ? 'Printed under the title on the post.'
-                    : 'Empty: the meta description is used under the title instead.'}
+                  {isPage
+                    ? excerpt.trim()
+                      ? 'Shown under the title on this post’s blog cards. Not printed on the post itself: your HTML page has its own introduction.'
+                      : 'Empty: no description shows on this post’s blog cards. The meta description in your HTML is never shown on the site.'
+                    : excerpt.trim()
+                      ? 'Shown under the title on the blog cards and at the top of the post. Cards show the first three lines.'
+                      : 'Empty: no description shows on the blog cards or under the title. The SEO meta description is never shown on the site.'}
                 </p>
                 <span
                   className={cn(
@@ -1336,8 +1356,9 @@ export function PostEditor({
                   <p className="max-w-[76ch] text-[13px] leading-[1.6] text-mut">
                     Paste the whole page, <code className="font-mono text-[12px]">&lt;html&gt;</code> and
                     all. Its layout, CSS, comments, <code className="font-mono text-[12px]">&lt;title&gt;</code>,
-                    meta description and structured data are all kept, and the page publishes on
-                    its own, with this site&rsquo;s header and footer hidden.
+                    meta description and structured data are all kept. The page publishes inside
+                    this site&rsquo;s header and footer, followed by the tags, author and FAQ set in
+                    the other tabs.
                   </p>
                   {/* THE ONE THING THAT DOES NOT SURVIVE, said before the paste rather
                       than discovered after it. See lib/post-page-html.ts. */}
@@ -1525,7 +1546,15 @@ export function PostEditor({
                   is itself a render, so the list is always current when it is seen. */}
               <BodyFaqNotice
                 panelCount={faqs.length}
-                bodyFaqs={activeSection === 'faq' && editor ? extractBodyFaqs(editor.getHTML()) : []}
+                /* A written post: questions typed into its article. Never for a pasted page —
+                   the hidden TipTap document behind it is not that post's body, and the
+                   page itself is arbitrary markup the extractor is not built to read. */
+                bodyFaqs={
+                  !isPage && activeSection === 'faq' && editor ? extractBodyFaqs(editor.getHTML()) : []
+                }
+                /* A pasted page: whether it already brings its own FAQPage, the same test the
+                   post page uses to decide whether this panel's questions get schema. */
+                pageHasFaqSchema={isPage && activeSection === 'faq' && pageHasFaqSchema(pageHtml)}
               />
               <FaqFields
                 faqs={faqs}

@@ -4,10 +4,10 @@ import { PageHero } from '@/components/ui/page-hero'
 import { Container, Section } from '@/components/ui/section'
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
 import { CtaBand } from '@/components/sections/cta-band'
+import { BylineDescription } from '@/components/ui/byline-description'
 import { TagLink } from '@/components/ui/tag-link'
 import {
   getPublishedPosts,
-  getPublishedTags,
   formatPostDate,
   coverImageUrl,
   coverImageSrcSet,
@@ -104,7 +104,6 @@ export default async function BlogPage() {
   const posts = await getPublishedPosts()
   const [featured, ...rest] = posts
   const featuredCover = featured ? coverImageUrl(featured) : null
-  const tags = await getPublishedTags()
 
   return (
     <>
@@ -180,7 +179,12 @@ export default async function BlogPage() {
                         {featured.title}
                       </Link>
                     </h2>
-                    <p className="mt-4 max-w-[52ch] text-[16px] text-mut">{featured.description}</p>
+                    {/* The byline description, not the meta description, and nothing when it
+                        is empty. See components/ui/byline-description.tsx. */}
+                    <BylineDescription
+                      post={featured}
+                      className="mt-4 line-clamp-4 max-w-[52ch] text-[16px]"
+                    />
                     <CardTags tags={featured.tags} />
                   </div>
                 </article>
@@ -231,9 +235,21 @@ export default async function BlogPage() {
                               {post.title}
                             </Link>
                           </h2>
-                          <p className="mt-2.5 flex-1 text-[14.5px] text-mut">{post.description}</p>
+                          {/* The wrapper keeps `flex-1` whether or not there is a description, so
+                              the tags stay pinned to the bottom of every card in the row and a
+                              post without a byline does not leave its chips floating halfway up.
+                              line-clamp-3 keeps a long byline from making one card taller than
+                              its neighbours. */}
+                          <div className="flex-1">
+                            <BylineDescription
+                              post={post}
+                              className="mt-2.5 line-clamp-3 text-[14.5px]"
+                            />
+                          </div>
                           {/* Three at most, as before: a grid card is a teaser, and the post
-                              and the "Browse by tag" row below both carry the full set. */}
+                              page carries the full set. There is no separate "Browse by tag"
+                              row on this page any more — the client asked for tags on the
+                              cards only — so a fourth tag is reached from the post itself. */}
                           <CardTags tags={post.tags.slice(0, 3)} className="py-1 text-[12px]" />
                         </div>
                       </article>
@@ -243,39 +259,6 @@ export default async function BlogPage() {
               ) : null}
             </>
           )}
-
-          {/* ---- Browse by tag --------------------------------------------
-              THIS ROW USED TO BE THE ONLY PLACE A TAG COULD BE CLICKED on this page,
-              because the cards were single links and a tag inside one could not be a
-              link of its own. The cards are stretched-link cards now and their tags
-              are real links, so that reason is gone — the client reported the dead
-              chips, and a tag that looks like a button and opens the wrong page is
-              worse than no tag.
-
-              THE ROW STAYS, for the reason it was always the better half of the
-              answer: it gives every tag on the blog one predictable place. The cards
-              show three tags at most, and only for the posts that happen to be on
-              screen; this is the full set.
-
-              Below the posts, because this is the second question. Someone arriving
-              at the index wants to see what is new; browsing a subject is what they do
-              once nothing on the page has caught them. */}
-          {tags.length > 0 ? (
-            <Reveal className="mt-16">
-              <div className="border-t border-line pt-8">
-                <h2 className="font-mono text-[11px] tracking-[0.2em] text-mut uppercase">
-                  Browse by tag
-                </h2>
-                <ul className="mt-5 flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <li key={tag.slug}>
-                      <TagLink tag={tag.tag} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </Reveal>
-          ) : null}
         </Container>
       </Section>
 

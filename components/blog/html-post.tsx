@@ -10,8 +10,9 @@ import { cn } from '@/lib/utils'
  * asked for and, seen on screen, read as a raw file served by accident rather than as a
  * post on a website. So the chrome is back: real header above, real footer below, and the
  * document in the middle with the same top clearance and horizontal measure every other
- * page on the site gets. What it still does NOT get is the article furniture — see the
- * note in app/blog/[slug]/page.tsx for which parts and why.
+ * page on the site gets. The post's tags, author card and FAQ follow it, rendered by the
+ * post page after this component; what it deliberately does not get (the hero, the cover,
+ * the prose column) is listed with reasons in app/blog/[slug]/page.tsx.
  *
  * WHICH MAKES THE PAGE'S OWN CSS A PROBLEM, and lib/scope-css.ts is the answer. A
  * stylesheet written for a standalone document says `body { background: … }` and
