@@ -5,6 +5,19 @@ import type { CloudinaryImage } from '@/lib/cloudinary/types'
 import { coverSrcSet, coverUrl, isStoredImageSrc } from '@/lib/cloudinary/url'
 import { slugify } from '@/lib/slug'
 /**
+ * Entities in the plain-text fields are decoded on the way OUT as well as on the way in.
+ *
+ * The save action decodes what it stores, which fixes every post from now on. This fixes
+ * the ones already written — a draft whose title holds `&quot;` reads correctly the moment
+ * this ships, with no migration and no one reopening it. Decoding twice is harmless: a
+ * decoded string has no entities left to decode.
+ *
+ * NEVER contentHtml. That field IS html, where `&amp;` is the correct storage for a
+ * literal ampersand; decoding it would corrupt the body and, worse, could turn stored text
+ * back into markup on a path that renders it with dangerouslySetInnerHTML.
+ */
+import { decodeHtmlEntities } from '@/lib/html-entities'
+/**
  * The OTHER sanitiser, for posts that are a whole pasted page rather than editor
  * output — see BlogPost.format. It lives in its own module because it has no database
  * import and therefore no server-only constraint, which is what lets the admin editor
@@ -596,8 +609,10 @@ function readCoverText(
 ): string | null {
   const image = doc.coverImage as Record<string, unknown> | null | undefined
   const fromImage = image && typeof image[onImage] === 'string' ? (image[onImage] as string) : ''
-  if (fromImage) return fromImage
-  return doc[legacy] ? String(doc[legacy]) : null
+  /* Decoded like every other plain-text field — alt text is read aloud, so an entity in it
+     is a screen reader saying "ampersand quot semicolon". See lib/html-entities.ts. */
+  if (fromImage) return decodeHtmlEntities(fromImage)
+  return doc[legacy] ? decodeHtmlEntities(String(doc[legacy])) : null
 }
 
 /**
@@ -614,8 +629,8 @@ function toFaqs(value: unknown): { question: string; answer: string }[] {
   return value.flatMap((entry) => {
     if (!entry || typeof entry !== 'object') return []
     const raw = entry as Record<string, unknown>
-    const question = typeof raw.question === 'string' ? raw.question.trim() : ''
-    const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
+    const question = typeof raw.question === 'string' ? decodeHtmlEntities(raw.question).trim() : ''
+    const answer = typeof raw.answer === 'string' ? decodeHtmlEntities(raw.answer).trim() : ''
     return question && answer ? [{ question, answer }] : []
   })
 }
@@ -627,12 +642,12 @@ function toPost(doc: WithId<Document>): BlogPost {
        note on BlogPost.format for why that default is the safe direction. */
     format: asPostFormat(doc.format),
     slug: String(doc.slug),
-    title: String(doc.title),
-    description: String(doc.description),
+    title: decodeHtmlEntities(String(doc.title)),
+    description: decodeHtmlEntities(String(doc.description)),
     /* Null rather than an empty string for an absent byline description, so a post
        written before the field existed and one whose field was cleared read the same
        way: as having none, which <BylineDescription> renders as nothing. */
-    excerpt: doc.excerpt ? String(doc.excerpt) : null,
+    excerpt: doc.excerpt ? decodeHtmlEntities(String(doc.excerpt)) : null,
     contentHtml: String(doc.contentHtml),
     coverImage: toCloudinaryImage(doc.coverImage),
     coverImageId: doc.coverImageId ? String(doc.coverImageId) : null,
@@ -641,11 +656,11 @@ function toPost(doc: WithId<Document>): BlogPost {
        rather than duplicated, so the two can never disagree. */
     coverAlt: readCoverText(doc, 'altText', 'coverAlt'),
     coverCaption: readCoverText(doc, 'caption', 'coverCaption'),
-    category: doc.category ? String(doc.category) : null,
-    tags: Array.isArray(doc.tags) ? doc.tags.map(String) : [],
+    category: doc.category ? decodeHtmlEntities(String(doc.category)) : null,
+    tags: Array.isArray(doc.tags) ? doc.tags.map((tag) => decodeHtmlEntities(String(tag))) : [],
     faqs: toFaqs(doc.faqs),
     authorId: doc.authorId ? String(doc.authorId) : null,
-    seoTitle: doc.seoTitle ? String(doc.seoTitle) : null,
+    seoTitle: doc.seoTitle ? decodeHtmlEntities(String(doc.seoTitle)) : null,
     focusKeyword: doc.focusKeyword ? String(doc.focusKeyword) : null,
     status: doc.status === 'published' ? 'published' : 'draft',
     publishedAt: doc.publishedAt instanceof Date ? doc.publishedAt : null,

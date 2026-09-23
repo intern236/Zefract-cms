@@ -8,6 +8,7 @@ import { MAX_UPLOAD_BYTES, type CloudinaryImage } from '@/lib/cloudinary/types'
 import { publicIdsInHtml } from '@/lib/cloudinary/url'
 import { getAuthorById } from '@/lib/authors'
 import { getDb, BLOG_COLLECTION } from '@/lib/mongodb'
+import { decodeHtmlEntities } from '@/lib/html-entities'
 import {
   POST_LIMITS,
   asPostFormat,
@@ -85,8 +86,27 @@ export type SaveResult =
   | { ok: true; id: string; slug: string; status: BlogPostStatus; warning?: string }
   | { ok: false; errors: Record<string, string> }
 
+/**
+ * Every text value on its way into the database, coerced and decoded.
+ *
+ * THE COERCION is the original job and the security one: an action is an HTTP endpoint, so
+ * a hand-crafted request can put an object where the editor puts a string, and coercing
+ * first is what keeps Mongo query operators out of a field.
+ *
+ * THE DECODING is new, and fixes what was reported as "the rich editor cannot fetch
+ * special characters". A title or description pasted out of an HTML source arrives as
+ * `Why &quot;Minimum&quot; Doesn&#39;t` and, being a plain string, was stored and shown
+ * exactly like that. The post BODY never had the problem because sanitize-html's parser
+ * decodes entities on the way in — so this gives the plain fields the same treatment the
+ * body gets for free. See lib/html-entities.ts for why it is safe on these values and why
+ * `&amp;` must be decoded last.
+ *
+ * ONE FUNNEL, SO NOTHING IS MISSED. Title, description, byline description, category,
+ * tags, SEO title, cover alt and caption, and both halves of every FAQ entry all arrive
+ * through here. Adding a field later gets the fix without anyone remembering to ask for it.
+ */
 function asString(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : ''
+  return typeof value === 'string' ? decodeHtmlEntities(value).trim() : ''
 }
 
 /**

@@ -34,6 +34,22 @@ import { validateFile, type CloudinaryImage } from '@/lib/cloudinary/types'
 import { startUpload } from '@/lib/cloudinary/upload-client'
 import { bodyUrl, isStoredImageSrc } from '@/lib/cloudinary/url'
 import { slugify } from '@/lib/slug'
+/**
+ * The same decoder the save action runs, applied as the writer types.
+ *
+ * WHY THE EDITOR NEEDS IT TOO. savePost() decodes what it stores and lib/blog.ts decodes
+ * what it reads, so the SITE is correct either way. The editor is the one surface that is
+ * not: its fields hold React state seeded once from the post, so a title pasted as
+ * `Why &quot;Minimum&quot;` would keep showing entities after saving, until a full page
+ * reload — which is exactly the shape of "it is still broken" that gets reported twice.
+ * Decoding here means the field shows what will be published, at the moment it is pasted.
+ *
+ * ON CHANGE RATHER THAN ON PASTE, because a paste handler has to reimplement insertion at
+ * the caret and a controlled input makes that worse, not better. The only case where typing
+ * differs is someone typing the five characters of `&amp;` by hand, which collapses to
+ * `&` on the final keystroke — the value the save would have stored anyway.
+ */
+import { decodeHtmlEntities } from '@/lib/html-entities'
 /* Dependency-free, so it can run here in the browser and show a writer exactly what the
    published page will turn into FAQ schema. The page calls the same function server-side. */
 import { extractBodyFaqs } from '@/lib/faq-extract'
@@ -622,7 +638,8 @@ export function PostEditor({
   /** Any edit anywhere counts, not just typing in the body. */
   const touch = useCallback(() => setDirty(true), [])
 
-  const onTitleChange = (value: string) => {
+  const onTitleChange = (raw: string) => {
+    const value = decodeHtmlEntities(raw)
     setTitle(value)
     if (!slugTouched) setSlug(slugify(value))
     touch()
@@ -1286,7 +1303,7 @@ export function PostEditor({
                 value={excerpt}
                 maxLength={EXCERPT_MAX}
                 onChange={(event) => {
-                  setExcerpt(event.target.value)
+                  setExcerpt(decodeHtmlEntities(event.target.value))
                   touch()
                 }}
                 placeholder="One or two sentences on what this post is about, written for readers…"
@@ -1587,11 +1604,11 @@ export function PostEditor({
                 tagCount={tags.length}
                 errors={errors}
                 onSeoTitle={(value) => {
-                  setSeoTitle(value)
+                  setSeoTitle(decodeHtmlEntities(value))
                   touch()
                 }}
                 onDescription={(value) => {
-                  setDescription(value)
+                  setDescription(decodeHtmlEntities(value))
                   touch()
                 }}
                 onSlug={(value) => {

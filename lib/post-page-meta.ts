@@ -22,6 +22,8 @@
  * it is ever re-emitted as markup.
  */
 
+import { decodeHtmlEntities } from '@/lib/html-entities'
+
 /** Which of the two shapes a post is. Stored on the post; defaults to the editor. */
 export type PostFormat = 'editor' | 'html'
 
@@ -116,22 +118,21 @@ export function pageHasFaqSchema(html: string): boolean {
 }
 
 /**
- * The five entities that actually turn up in a hand-written title.
+ * Entity decoding, plus the whitespace tidy a title lifted out of markup needs.
  *
- * NOT A GENERAL DECODER, and it does not need to be. These strings are stored in text
- * fields and printed as text, so an entity left undecoded is a cosmetic wart — `Ten &amp;
- * counting` in a browser tab — rather than a correctness problem. What would be a problem
- * is a decoder thorough enough to turn `&lt;script&gt;` back into markup somewhere down the
- * line, so `&lt;` and `&gt;` are deliberately NOT on this list. They stay escaped.
+ * IT USED TO BE ITS OWN FIVE-ENTITY VERSION, and it carried the ordering bug that
+ * lib/html-entities.ts now documents: it replaced `&amp;` FIRST, so a title meant to read
+ * `&quot;` — written `&amp;quot;` — came out as a bare quote, its meaning destroyed
+ * silently. It also knew nothing of `&#8220;`, `&#x27;` or `&mdash;`, which is most of what
+ * a title pasted out of a real page actually carries.
+ *
+ * The old note here argued that `&lt;` and `&gt;` should stay escaped in case something
+ * downstream rendered the value as markup. Nothing does — see the invariant in
+ * lib/html-entities.ts — and leaving them encoded is how a heading about `<head>` ends up
+ * published as `&lt;head&gt;`.
  */
 function decodeEntities(text: string): string {
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return decodeHtmlEntities(text).replace(/\s+/g, ' ').trim()
 }
 
 /**
