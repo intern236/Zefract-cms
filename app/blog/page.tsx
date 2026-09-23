@@ -157,7 +157,32 @@ export default async function BlogPage() {
                   )}
                 >
                   {featuredCover ? (
-                    <div className="relative aspect-16/9 overflow-hidden bg-ink lg:aspect-auto lg:min-h-[340px]">
+                    /**
+                     * 16:9 AT EVERY WIDTH, AND NOT STRETCHED TO THE TEXT COLUMN.
+                     *
+                     * This used to be `lg:aspect-auto lg:min-h-[340px]`, which let the grid
+                     * stretch the image column to whatever height the words beside it came
+                     * to. A grid item stretches by default, and a stretched box ignores
+                     * `aspect-ratio` — so on a desktop the column ended up taller and
+                     * narrower than 16:9, and `object-cover` paid for the difference by
+                     * trimming the left and right edges of the picture.
+                     *
+                     * THAT IS RUINOUS FOR THESE PARTICULAR IMAGES. A blog cover here is a
+                     * designed banner with a headline, a logo and contact details laid
+                     * across its full width, so the first thing a side crop removes is the
+                     * words. The client's report shows it: "SEO vs AEO vs GEO" cut off at
+                     * both ends.
+                     *
+                     * The covers are 16:9 already — Cloudinary serves them `ar_16:9` and the
+                     * one on the live site is a 1280x720 upload, so nothing is lost before
+                     * the page gets it. Keeping the box at 16:9 and letting it size itself
+                     * means `object-cover` has nothing to crop.
+                     *
+                     * `lg:self-center` is what opts this column out of the stretch. The text
+                     * column still stretches, which is invisible — it is the card's own
+                     * white — and it already centres its content.
+                     */
+                    <div className="relative aspect-16/9 overflow-hidden bg-ink lg:self-center">
                       <CoverImage post={featured} />
                       <div
                         aria-hidden="true"
