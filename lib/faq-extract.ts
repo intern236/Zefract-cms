@@ -30,7 +30,8 @@
  *   • The section ends at the next heading of the same or higher level that is not itself a
  *     question, or at a horizontal rule.
  *
- * NO DEPENDENCIES, deliberately. The published page calls it on the server, and the admin
+ * NO NPM DEPENDENCIES, deliberately — only lib/html-entities.ts, which has none either. The
+ * published page calls it on the server, and the admin
  * editor calls it in the browser to show a writer what will be published. lib/blog.ts
  * imports the MongoDB driver and cannot be used from the editor, so this lives on its own.
  *
@@ -40,6 +41,8 @@
  * makes, and for the same reason: nothing here is a security boundary, and the shapes being
  * looked for are unambiguous.
  */
+
+import { decodeHtmlEntities } from '@/lib/html-entities'
 
 export type ExtractedFaq = { question: string; answer: string }
 
@@ -117,25 +120,14 @@ function topLevelBlocks(html: string): Block[] {
   return blocks
 }
 
-/** Named and numeric entities, decoded. Safe: the output is only ever used as text. */
-function decodeEntities(text: string): string {
-  return text
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(parseInt(code, 16)))
-    .replace(/&nbsp;/g, ' ')
-    /* The typographic ones a pasted answer is most likely to carry. `&amp;` stays last
-       below so `&amp;mdash;` decodes to the literal text "&mdash;", not to a dash. */
-    .replace(/&mdash;/g, '—')
-    .replace(/&ndash;/g, '–')
-    .replace(/&hellip;/g, '…')
-    .replace(/&[lr]squo;/g, "'")
-    .replace(/&[lr]dquo;/g, '"')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-}
+/**
+ * Named and numeric entities, decoded through the shared table.
+ *
+ * It was a local list once, with the right ordering but a short set of names. Sharing it
+ * means a question and a post title decode identically, and the argument for why `&amp;`
+ * goes last lives in exactly one place: lib/html-entities.ts.
+ */
+const decodeEntities = decodeHtmlEntities
 
 /**
  * The readable text of a fragment.

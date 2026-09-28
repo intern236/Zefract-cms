@@ -338,7 +338,20 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   chosen from and lost its top and bottom on the page it led to.
                   Matching the ratio means the crop happens once, at Cloudinary,
                   with content-aware gravity, and the page shows the whole of it. */}
-              <div className="relative aspect-16/9 overflow-hidden rounded-card bg-ink">
+              {/**
+                * THE BANNER IS THE WIDTH OF THE ARTICLE, not the width of the page.
+                *
+                * It used to fill the whole container while everything under it — the byline,
+                * the prose, the tags, the author card — sat at the 68ch measure. At 1180px
+                * that made a 16:9 cover 664px tall: a banner taller than the first screen of
+                * writing, which the client reported as "too large on the detail page".
+                *
+                * `mx-auto max-w-[68ch]` is the same measure every other block on this page
+                * uses, so the banner now lines up with the text on both edges and comes to
+                * 605x340 on a desktop. Nothing is cropped by the change: the box is still
+                * 16:9 and the image is still 16:9, so it simply renders smaller.
+                */}
+              <div className="relative mx-auto aspect-16/9 max-w-[68ch] overflow-hidden rounded-card bg-ink">
                   {/* The author's alt where they wrote one, the title as a
                       fallback: a poor description beats none at all. Plain img
                       over the DB-serving route; the wrapper owns the aspect
@@ -347,7 +360,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   <img
                     src={cover}
                     srcSet={coverImageSrcSet(post)}
-                    sizes="(max-width: 1180px) 100vw, 1080px"
+                    /* 605px is the measured article width; 652 is the viewport at which
+                       the container stops being narrower than it (605 + the 24px gutters).
+                       Left at 1080px, a phone would fetch an image nearly twice the size it
+                       can show. */
+                    sizes="(max-width: 652px) 100vw, 605px"
                     /* This is the page's largest image and sits above the fold,
                        so it is the LCP element — eager and high priority, the
                        opposite of the lazy cards on the index. */

@@ -155,13 +155,20 @@ export default async function PreviewPostPage({ params }: { params: Promise<{ id
               to carry. This page exists to show the post as a visitor will see
               it, so a different cover ratio here would make the preview lie
               about the one thing it is for. */}
+          {/* THE ARTICLE MEASURE, exactly as the published page sizes it — see the note
+              there. A preview showing a full-width banner would misrepresent the one thing
+              a writer opens a preview to check.
+
+              The comment sits ABOVE the ternary, not inside it: a JSX comment as the first
+              child of `{cover ? (` is a syntax error, which this file has produced once
+              before. */}
           {cover ? (
-            <div className="relative aspect-16/9 overflow-hidden rounded-card bg-ink">
+            <div className="relative mx-auto aspect-16/9 max-w-[68ch] overflow-hidden rounded-card bg-ink">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={cover}
                   srcSet={coverImageSrcSet(post)}
-                  sizes="(max-width: 1180px) 100vw, 1080px"
+                  sizes="(max-width: 652px) 100vw, 605px"
                   alt={post.coverAlt || post.title}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
