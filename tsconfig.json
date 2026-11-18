@@ -25,6 +25,24 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@cms-logic/site-kit/*": [
+        "./cms-logic/site-kit/src/*"
+      ],
+      "@cms-logic/site-kit": [
+        "./cms-logic/site-kit/src/index.ts"
+      ],
+      "@cms-logic/*": [
+        "./cms-logic/*"
+      ],
+      "@cms/site-kit/*": [
+        "./cms-logic/site-kit/src/*"
+      ],
+      "@cms/site-kit": [
+        "./cms-logic/site-kit/src/index.ts"
+      ],
+      "@cms/*": [
+        "./cms-logic/*"
       ]
     }
   },
