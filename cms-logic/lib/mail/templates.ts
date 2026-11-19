@@ -105,7 +105,7 @@ export function inviteEmail(input: {
 }): RenderedEmail {
   const where = input.workspaceName ? `${input.workspaceName}'s CMS` : `the ${input.brand.name} team`
   const subject = input.workspaceName
-    ? `${input.inviterName} invited you to ${input.workspaceName}`
+    ? `${input.inviterName} invited you to join ${input.workspaceName}`
     : `${input.inviterName} invited you to the ${input.brand.name} team`
   const text = [
     `${input.inviterName} invited you to ${where} as ${input.roleLabel}.`,

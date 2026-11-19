@@ -230,6 +230,41 @@ const nextConfig: NextConfig = {
         destination: '/services/email-marketing',
         permanent: true,
       },
+      {
+        source: '/invite/:token',
+        destination: '/login?invite=:token',
+        permanent: false,
+      },
+      {
+        source: '/reset/:token',
+        destination: '/cms/reset/:token',
+        permanent: false,
+      },
+      {
+        source: '/:workspace/posts/:path*',
+        destination: '/cms/:workspace/posts/:path*',
+        permanent: false,
+      },
+      {
+        source: '/:workspace/posts',
+        destination: '/cms/:workspace/posts',
+        permanent: false,
+      },
+      {
+        source: '/:workspace/inbox/:path*',
+        destination: '/cms/:workspace/inbox/:path*',
+        permanent: false,
+      },
+      {
+        source: '/:workspace/inbox',
+        destination: '/cms/:workspace/inbox',
+        permanent: false,
+      },
+      {
+        source: '/:workspace/settings',
+        destination: '/cms/:workspace/settings',
+        permanent: false,
+      },
     ]
   },
 };

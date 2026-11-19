@@ -50,8 +50,15 @@ if (!NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API
   console.error('Cloudinary is not configured. See .env.example.')
   process.exit(1)
 }
-if (!MONGODB_URI) {
-  console.error('MONGODB_URI is not set, so there is no way to know what is referenced.')
+const mongoUri =
+  (process.env.MONGODB_DB && /^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)
+    ? process.env.MONGODB_DB
+    : undefined) ||
+  process.env.MONGODB_URI ||
+  process.env.DATABASE_URL
+
+if (!mongoUri) {
+  console.error('Neither MONGODB_DB nor MONGODB_URI is set, so there is no way to know what is referenced.')
   process.exit(1)
 }
 
@@ -81,9 +88,15 @@ async function allAssets() {
 
 /** Every public id any post points at: its cover, and anything in its HTML. */
 async function referencedIds() {
-  const client = await new MongoClient(MONGODB_URI).connect()
+  const client = await new MongoClient(mongoUri).connect()
   try {
-    const db = client.db(process.env.MONGODB_DB || 'zefract')
+    const dbName =
+      (process.env.MONGODB_DB && !/^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)
+        ? process.env.MONGODB_DB
+        : undefined) ||
+      new URL(mongoUri.replace(/^mongodb(\+srv)?:/, 'http:')).pathname.slice(1) ||
+      'cms'
+    const db = client.db(dbName)
     const posts = await db
       .collection('blog_posts')
       .find({}, { projection: { coverImage: 1, contentHtml: 1 } })

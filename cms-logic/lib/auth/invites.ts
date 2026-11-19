@@ -1,4 +1,4 @@
-﻿import 'server-only'
+import 'server-only'
 import { newId, sys, type Role } from '@cms-logic/lib/db'
 import { cmsUrl } from '@cms-logic/lib/env'
 import { agencyBrand, sendMail, workspaceBrand, type MailResult } from '@cms-logic/lib/mail'
@@ -51,7 +51,7 @@ export async function createInvite(input: {
     expiresAt: new Date(Date.now() + INVITE_DAYS * 86_400_000),
   })
 
-  const url = `${cmsUrl()}/invite/${token}`
+  const url = `${cmsUrl()}/login?invite=${token}`
   let brand = agencyBrand()
   let workspaceName: string | null = null
   if (input.workspaceId) {

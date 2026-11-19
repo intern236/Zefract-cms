@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -157,7 +157,7 @@ export function MessageActions({
     if (!r.ok) return toast.error(r.error)
     toast.success(message)
     /* The action already refreshed the page's data (revalidatePath); only leaving needs a navigation. */
-    if (leave) router.push(`/${workspace}/inbox${filterQs}`)
+    if (leave) router.push(`/cms/${workspace}/inbox${filterQs}`)
   }
   return (
     <div className="flex items-center gap-1.5">
@@ -193,7 +193,7 @@ export function MessageActions({
           if (!r.ok) return void toast.error(r.error)
           setConfirm(false)
           toast.success('Message deleted')
-          router.push(`/${workspace}/inbox${filterQs}`)
+          router.push(`/cms/${workspace}/inbox${filterQs}`)
         }}
       />
     </div>

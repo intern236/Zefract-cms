@@ -32,17 +32,21 @@ export function backendFor(url: string | undefined): Backend {
   if (/^mongodb(\+srv)?:\/\//.test(value)) return 'mongo'
   if (!value) {
     throw new Error(
-      'DATABASE_URL is not set. Use `npm run dev` (it starts a local MongoDB for you), ' +
-        'or set DATABASE_URL to a mongodb:// or mongodb+srv:// address. See apps/cms/.env.example.'
+      'MONGODB_URI is not set. Use `npm run dev` (it starts a local MongoDB for you), ' +
+        'or set MONGODB_URI to a mongodb:// or mongodb+srv:// address.'
     )
   }
-  throw new Error('DATABASE_URL must start with mongodb:// or mongodb+srv://.')
+  throw new Error('Database connection URL must start with mongodb:// or mongodb+srv://.')
 }
 
 const g = globalThis as unknown as { __cmsStore?: Store }
 
 function open(): Store {
-  const url = process.env.DATABASE_URL
+  const fromDbVar =
+    process.env.MONGODB_DB && /^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)
+      ? process.env.MONGODB_DB
+      : undefined
+  const url = fromDbVar || process.env.MONGODB_URI || process.env.DATABASE_URL
   backendFor(url)
   return openMongo(url!.trim())
 }

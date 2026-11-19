@@ -24,7 +24,6 @@ import {
   UsersThree,
   X,
 } from '@phosphor-icons/react'
-import { logout } from '@cms-logic/lib/actions/auth'
 import { Avatar, WorkspaceMark } from '@cms-logic/components/ui/avatar'
 import { LinkPending } from '@cms-logic/components/ui/link-pending'
 import { Kbd } from '@cms-logic/components/ui/misc'
@@ -34,6 +33,7 @@ import { cn } from '@cms-logic/lib/utils'
 import { CommandPalette } from './command-palette'
 import type { NavItem, NavKey, ShellProps } from './types'
 import { prefetchOnHover } from '@cms-logic/lib/prefetch'
+import { logout } from '@cms-logic/lib/actions/auth'
 
 const ICONS: Record<NavKey, React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' | 'duotone' | 'bold' }>> = {
   dashboard: SquaresFour,
@@ -222,6 +222,15 @@ function Sidebar({ user, workspace, workspaces, nav, agencyName, canCreatePost, 
           </a>
         )}
         <UserMenu user={user} workspace={workspace} />
+        <form action={logout} className="mt-1 w-full">
+          <button
+            type="submit"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 font-mono text-[11px] font-medium tracking-[0.14em] text-white uppercase shadow-[0_14px_30px_-12px_rgba(8,20,34,0.45)] transition hover:-translate-y-0.5 hover:bg-ink-2 cursor-pointer"
+          >
+            <SignOut size={14} weight="bold" />
+            <span>Sign out</span>
+          </button>
+        </form>
       </div>
     </div>
   )
@@ -334,9 +343,8 @@ function UserMenu({ user, workspace }: Pick<ShellProps, 'user' | 'workspace'>) {
         </MenuItem>
         <MenuSeparator />
         <form action={logout}>
-          {workspace && !user.isAgency && <input type="hidden" name="workspace" value={workspace.slug} />}
-          <MenuItem asChild danger>
-            <button type="submit" className="w-full">
+          <MenuItem danger asChild>
+            <button type="submit" className="flex w-full items-center gap-2.5">
               <SignOut />
               Sign out
             </button>

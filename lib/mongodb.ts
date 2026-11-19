@@ -20,24 +20,47 @@ import { MongoClient, type Db } from 'mongodb'
 
 /** Fail loudly and early rather than at the first form submission. */
 function connectionString(): string {
-  const uri = process.env.MONGODB_URI
+  const fromDb =
+    process.env.MONGODB_DB && /^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)
+      ? process.env.MONGODB_DB
+      : undefined
+  const uri = fromDb || process.env.MONGODB_URI || process.env.DATABASE_URL
   if (!uri) {
     throw new Error(
-      'MONGODB_URI is not set. Add it to .env.local for development and to the hosting ' +
-        'environment for deploys. See the setup notes in .env.example.'
+      'Database connection URL is not set. Set MONGODB_DB or MONGODB_URI in .env.'
     )
   }
   return uri
 }
 
-/**
- * Database name comes from the environment too, defaulting to `zefract`.
- *
- * Separate from the URI on purpose: the same cluster usually holds a staging and a production
- * database, and switching between them should not mean editing a connection string that also
- * contains credentials.
- */
-const DB_NAME = process.env.MONGODB_DB || 'zefract'
+export function isDbConfigured(): boolean {
+  return Boolean(
+    (process.env.MONGODB_DB && /^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)) ||
+      process.env.MONGODB_URI ||
+      process.env.DATABASE_URL
+  )
+}
+
+function resolveDbName(uri: string): string {
+  if (process.env.MONGODB_DB && !/^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)) {
+    return process.env.MONGODB_DB
+  }
+  try {
+    const parsed = new URL(uri.replace(/^mongodb(\+srv)?:/, 'http:'))
+    const path = parsed.pathname.slice(1)
+    if (path) return path
+  } catch {}
+  return 'cms'
+}
+
+const DB_NAME = resolveDbName(
+  (process.env.MONGODB_DB && /^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)
+    ? process.env.MONGODB_DB
+    : undefined) ||
+    process.env.MONGODB_URI ||
+    process.env.DATABASE_URL ||
+    ''
+)
 
 /** The collection this site writes contact submissions to. Exported so the route handler and
  *  any future admin view cannot disagree about the name. */

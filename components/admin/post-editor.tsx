@@ -902,9 +902,9 @@ export function PostEditor({
       icon: FolderOpen,
       flagged: Boolean(errors.category),
     },
-    /* Between Category and Tags: filing the post, then crediting it, then
-       labelling it. The byline is a fact about the post rather than a way of
-       finding it, so it sits with the filing rather than with the index terms. */
+    /* Author sits between Category and Tags: it is part of post labelling, like
+       the category, but it is a person not a topic — it comes after the subject
+       is set and before the keyword tags that describe it. */
     { id: 'author', label: 'Author', icon: UserRound, flagged: false },
     { id: 'tags', label: 'Tags', icon: Tag, flagged: Boolean(errors.tags) },
     /* After the labelling, before SEO. An FAQ is content the reader sees, so it

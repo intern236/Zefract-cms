@@ -188,5 +188,12 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 export async function logout(): Promise<void> {
   await destroySession()
   await destroyPendingSession()
-  redirect('/admin/login')
+  try {
+    const { cookies } = await import('next/headers')
+    const jar = await cookies()
+    jar.delete('cms_session')
+  } catch {
+    // ignore
+  }
+  redirect('/login')
 }

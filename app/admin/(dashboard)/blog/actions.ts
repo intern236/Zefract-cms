@@ -440,6 +440,8 @@ export async function savePost(payload: PostPayload): Promise<SaveResult> {
     publishedAt,
     updatedAt: now,
     readingMinutes: readingMinutes(contentHtml, format),
+    userId: 'zefract-admin',
+    workspaceId: 'zefract',
   }
 
   let id: string

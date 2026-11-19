@@ -41,10 +41,5 @@ export async function completeSetup(_prev: SetupState, form: FormData): Promise<
   await (await sys()).users.insert({ id, email, name, passwordHash: await hashPassword(password), isAgency: true })
   await createSession(id)
 
-  if (form.get('demo') === 'on' && process.env.NODE_ENV !== 'production') {
-    const { seedDemo } = await import('@cms-logic/lib/demo')
-    await seedDemo(id)
-    redirect('/cms/agency?welcome=demo')
-  }
   redirect('/cms/agency?welcome=1')
 }

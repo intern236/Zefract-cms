@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight, CalendarBlank, NotePencil, Plus, Tray } from '@phosphor-icons/react/dist/ssr'
 import { ActivityFeed } from '@cms-logic/components/dashboard/activity'
@@ -48,7 +48,7 @@ export default async function Dashboard({ params, searchParams }: { params: Prom
   const unread = data.messages?.filter((m) => !m.readAt).length ?? 0
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
-  const base = `/${slug}`
+  const base = `/cms/${slug}`
   const pairSpan = data.messages && data.activity ? 'col-span-2 row-span-2' : 'col-span-2 md:col-span-4'
 
   return (

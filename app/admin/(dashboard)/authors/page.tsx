@@ -49,6 +49,12 @@ export default async function AdminAuthorsPage() {
         actions={
           <>
             <Link
+              href="/admin/cms/agency"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-[13px] font-semibold text-head transition-colors hover:border-brand/50 hover:text-brand-strong"
+            >
+              CMS Agency →
+            </Link>
+            <Link
               href="/admin/blog"
               className="hidden h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-[13px] font-semibold text-head transition-colors hover:border-brand/50 hover:text-brand-strong sm:inline-flex"
             >

@@ -67,6 +67,7 @@ function toAuthor(doc: WithId<Document>): Author {
     websiteUrl: doc.websiteUrl ? String(doc.websiteUrl) : null,
     createdAt: doc.createdAt instanceof Date ? doc.createdAt : new Date(0),
     updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt : new Date(0),
+    workspaceId: doc.workspaceId ? String(doc.workspaceId) : null,
   }
 }
 
@@ -79,14 +80,28 @@ async function authors() {
  *  renders empty so a fresh clone still builds; a configured-but-unreachable one
  *  still throws, so ISR keeps serving the last good page. */
 function dbConfigured(): boolean {
-  return Boolean(process.env.MONGODB_URI)
+  return Boolean(
+    (process.env.MONGODB_DB && /^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)) ||
+      process.env.MONGODB_URI ||
+      process.env.DATABASE_URL
+  )
 }
 
-/** Every author, by name. The admin list, and the editor's author picker. */
+/** Every author, by name. The admin list, and the editor's author picker.
+ *  Strictly scoped to Zefract's own authors (excludes client workspace authors). */
 export async function getAllAuthors(): Promise<Author[]> {
   if (!dbConfigured()) return []
   const col = await authors()
-  const docs = await col.find({}).sort({ name: 1 }).toArray()
+  const docs = await col
+    .find({
+      $or: [
+        { workspaceId: 'zefract' },
+        { workspaceId: null },
+        { workspaceId: { $exists: false } },
+      ],
+    })
+    .sort({ name: 1 })
+    .toArray()
   return docs.map(toAuthor)
 }
 

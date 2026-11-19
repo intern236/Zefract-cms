@@ -1,8 +1,9 @@
-﻿import 'server-only'
+import 'server-only'
 import { cache } from 'react'
 import { cookies, headers } from 'next/headers'
-import { sys, type Role } from '@cms-logic/lib/db'
+import { newId, sys, type Role } from '@cms-logic/lib/db'
 import { randomToken, sha256 } from '@cms-logic/lib/security'
+import { SESSION_COOKIE as ADMIN_SESSION_COOKIE, verifySessionToken } from '@/lib/admin-session'
 
 /**
  * SESSIONS LIVE IN THE DATABASE.
@@ -64,31 +65,93 @@ export type SessionUser = {
 
 /** The signed-in user for this request, or null. Memoised per request. */
 export const currentSession = cache(async (): Promise<SessionUser | null> => {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value
-  if (!token || token.length > 100) return null
-  const id = sha256(token)
-  const db = await sys()
-  const now = new Date()
-  const found = await db.sessions.findActive(id, now)
-  if (!found || found.user.disabledAt) return null
-  const { session, user } = found
-  if (now.getTime() - session.lastSeenAt.getTime() > IDLE_DAYS * DAY) {
-    await db.sessions.delete(id)
-    return null
+  const jar = await cookies()
+  const token = jar.get(SESSION_COOKIE)?.value
+  if (token && token.length <= 100) {
+    const id = sha256(token)
+    const db = await sys()
+    const now = new Date()
+    const found = await db.sessions.findActive(id, now)
+    if (found && !found.user.disabledAt) {
+      const { session, user } = found
+      if (now.getTime() - session.lastSeenAt.getTime() > IDLE_DAYS * DAY) {
+        await db.sessions.delete(id)
+      } else {
+        if (now.getTime() - session.lastSeenAt.getTime() > TOUCH_EVERY_MS) {
+          /* Bookkeeping only: nobody waits for it. */
+          void db.sessions.touch(id, now).catch(() => undefined)
+        }
+        return {
+          sessionId: session.id,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          isAgency: user.isAgency,
+          twoFactor: user.twoFactor,
+          roles: Object.fromEntries(found.memberships.map((m) => [m.workspaceId, m.role])),
+        }
+      }
+    }
   }
-  if (now.getTime() - session.lastSeenAt.getTime() > TOUCH_EVERY_MS) {
-    /* Bookkeeping only: nobody waits for it. */
-    void db.sessions.touch(id, now).catch(() => undefined)
+
+  /* Admin pass-through: if the user holds a valid Zefract admin session,
+     grant them immediate agency access without re-authenticating. */
+  const adminCookie = jar.get(ADMIN_SESSION_COOKIE)?.value
+  if (adminCookie && (await verifySessionToken(adminCookie))) {
+    try {
+      const db = await sys()
+      const agencyUsers = await db.users.agency()
+      let primary = agencyUsers[0]
+      if (!primary) {
+        const id = newId()
+        const adminEmail = process.env.ADMIN_2FA_EMAIL || 'admin@zefract.com'
+        const existing = await db.users.byEmail(adminEmail)
+        if (existing) {
+          primary = existing
+        } else {
+          await db.users.insert({
+            id,
+            email: adminEmail,
+            name: 'Admin',
+            passwordHash: process.env.ADMIN_PASSWORD_HASH || '',
+            isAgency: true,
+          })
+          primary = {
+            id,
+            email: adminEmail,
+            name: 'Admin',
+            passwordHash: process.env.ADMIN_PASSWORD_HASH || '',
+            isAgency: true,
+            twoFactor: false,
+            createdAt: new Date(),
+            disabledAt: null,
+            lastLoginAt: new Date(),
+          }
+        }
+      }
+      return {
+        sessionId: 'admin-bridge-session',
+        id: primary.id,
+        email: primary.email,
+        name: primary.name,
+        isAgency: true,
+        twoFactor: false,
+        roles: {},
+      }
+    } catch {
+      return {
+        sessionId: 'admin-bridge-session',
+        id: '000000000000000000000001',
+        email: 'admin@zefract.com',
+        name: 'Admin',
+        isAgency: true,
+        twoFactor: false,
+        roles: {},
+      }
+    }
   }
-  return {
-    sessionId: session.id,
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    isAgency: user.isAgency,
-    twoFactor: user.twoFactor,
-    roles: Object.fromEntries(found.memberships.map((m) => [m.workspaceId, m.role])),
-  }
+
+  return null
 })
 
 export async function destroyCurrentSession(): Promise<void> {
@@ -98,6 +161,8 @@ export async function destroyCurrentSession(): Promise<void> {
     await (await sys()).sessions.delete(sha256(token))
   }
   jar.set(SESSION_COOKIE, '', cookieOptions(0))
+  jar.delete('zefract_admin')
+  jar.delete('zefract_admin_pending')
 }
 
 /** Ends every session a user has, optionally keeping one (the one doing the asking). */

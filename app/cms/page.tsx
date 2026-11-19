@@ -10,12 +10,12 @@ import { prefetchOnHover } from '@cms-logic/lib/prefetch'
 
 /** Where "/cms" leads: setup, sign-in, the agency overview, your only workspace, or a chooser. */
 export default async function Home() {
-  if ((await userCount()) === 0) redirect('/cms/setup')
   const user = await currentSession()
-  if (!user) redirect('/cms/login')
-  if (user.isAgency) redirect('/cms/agency')
+  if (user?.isAgency) redirect('/cms/agency')
+  if ((await userCount()) === 0) redirect('/cms/setup')
+  if (!user) redirect('/login')
   const workspaces = await listMyWorkspaces()
-  if (workspaces.length === 1) redirect(`/cms/${workspaces[0].slug}`)
+  if (workspaces.length > 0) redirect(`/cms/${workspaces[0].slug}`)
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center px-6 py-16">
       <h1 className="font-serif text-[52px] leading-[0.95] tracking-[-0.02em]">Hello, {user.name.split(' ')[0]}</h1>

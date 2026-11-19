@@ -40,7 +40,7 @@ export function ClientCard({ c }: { c: ClientCardData }) {
         href={`/cms/${c.slug}`}
         {...prefetchOnHover}
         className={cn(
-          'group block overflow-hidden rounded-[24px] border border-line bg-surface shadow-card transition-[transform,box-shadow] duration-500 ease-out-expo hover:-translate-y-1.5 hover:shadow-float',
+          'group block overflow-hidden rounded-[24px] border border-line bg-surface shadow-[0_1px_3px_rgba(8,20,34,0.05)] card-pop transition-[transform,box-shadow,border-color] duration-300',
           c.archived && 'opacity-60'
         )}
         onPointerMove={(e) => {
@@ -62,14 +62,14 @@ export function ClientCard({ c }: { c: ClientCardData }) {
             <ArrowUpRight size={16} weight="bold" />
           </span>
           {c.unread > 0 && (
-            <span className="absolute bottom-4 right-4 rounded-full bg-white px-2.5 py-1 text-[11.5px] font-semibold text-ink shadow">
+            <span className="absolute bottom-4 right-4 rounded-full bg-white px-2.5 py-1 font-mono text-[10.5px] font-semibold uppercase tracking-wider text-ink shadow">
               {c.unread} new {c.unread === 1 ? 'enquiry' : 'enquiries'}
             </span>
           )}
         </div>
         <div className="p-5">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="truncate text-[17px] font-semibold tracking-[-0.015em] text-ink">{c.name}</h3>
+            <h3 className="truncate font-serif text-[22px] leading-snug tracking-[-0.015em] text-ink">{c.name}</h3>
             <HealthDot state={c.webhook} />
           </div>
           <p className="mt-0.5 truncate text-[13px] text-muted">{c.siteUrl ? c.siteUrl.replace(/^https?:\/\//, '') : 'No website connected yet'}</p>
@@ -78,7 +78,7 @@ export function ClientCard({ c }: { c: ClientCardData }) {
             <Num label="Drafts" value={c.drafts} />
             <Num label="Review" value={c.review} highlight={c.review > 0} />
           </dl>
-          <p className="mt-4 border-t border-line pt-3 text-[12.5px] text-muted">
+          <p className="mt-4 border-t border-line pt-3 text-[12px] text-faint">
             {c.lastPublishedAt ? <TimeAgo date={c.lastPublishedAt} prefix="Last published " /> : 'Nothing published yet'} · {c.members}{' '}
             {c.members === 1 ? 'person' : 'people'}
           </p>
@@ -91,8 +91,8 @@ export function ClientCard({ c }: { c: ClientCardData }) {
 function Num({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   return (
     <div className={cn('rounded-xl px-3 py-2', highlight ? 'bg-warn-soft' : 'bg-surface-2')}>
-      <dt className={cn('text-[11px]', highlight ? 'text-warn' : 'text-muted')}>{label}</dt>
-      <dd className="font-serif text-[26px] leading-tight text-ink">{value}</dd>
+      <dt className={cn('font-mono text-[11px] uppercase tracking-[0.12em]', highlight ? 'text-warn' : 'text-muted')}>{label}</dt>
+      <dd className="mt-1 font-serif text-[24px] leading-none text-ink">{value}</dd>
     </div>
   )
 }

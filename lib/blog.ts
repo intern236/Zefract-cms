@@ -215,6 +215,8 @@ export interface BlogPost {
   createdAt: Date
   updatedAt: Date
   readingMinutes: number
+  userId?: string
+  workspaceId?: string
 }
 
 /**
@@ -667,12 +669,21 @@ function toPost(doc: WithId<Document>): BlogPost {
     createdAt: doc.createdAt instanceof Date ? doc.createdAt : new Date(0),
     updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt : new Date(0),
     readingMinutes: typeof doc.readingMinutes === 'number' ? doc.readingMinutes : 1,
+    userId: doc.userId ? String(doc.userId) : 'zefract-admin',
+    workspaceId: doc.workspaceId ? String(doc.workspaceId) : 'zefract',
   }
 }
 
 async function posts() {
   const db = await getDb()
   return db.collection(BLOG_COLLECTION)
+}
+
+/**
+ * Filter that limits queries to Zefract's own posts, keeping client workspace posts separate.
+ */
+const ZEFRACT_SCOPE = {
+  $or: [{ workspaceId: 'zefract' }, { workspaceId: { $exists: false } }, { workspaceId: null }],
 }
 
 /**
@@ -685,7 +696,11 @@ async function posts() {
  * instead of caching an empty blog over a real one.
  */
 function dbConfigured(): boolean {
-  return Boolean(process.env.MONGODB_URI)
+  return Boolean(
+    (process.env.MONGODB_DB && /^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)) ||
+      process.env.MONGODB_URI ||
+      process.env.DATABASE_URL
+  )
 }
 
 /** Published posts, newest first — the public /blog index. Drafts never leave this file. */
@@ -695,7 +710,10 @@ export async function getPublishedPosts(): Promise<BlogPost[]> {
     return []
   }
   const col = await posts()
-  const docs = await col.find({ status: 'published' }).sort({ publishedAt: -1 }).toArray()
+  const docs = await col
+    .find({ status: 'published', ...ZEFRACT_SCOPE })
+    .sort({ publishedAt: -1 })
+    .toArray()
   return docs.map(toPost)
 }
 
@@ -704,7 +722,7 @@ export async function getPublishedPosts(): Promise<BlogPost[]> {
 export async function getPublishedPost(slug: string): Promise<BlogPost | null> {
   if (!dbConfigured()) return null
   const col = await posts()
-  const doc = await col.findOne({ slug: String(slug), status: 'published' })
+  const doc = await col.findOne({ slug: String(slug), status: 'published', ...ZEFRACT_SCOPE })
   return doc ? toPost(doc) : null
 }
 
@@ -719,7 +737,7 @@ export async function getPublishedPostsByAuthor(authorId: string): Promise<BlogP
   if (!dbConfigured()) return []
   const col = await posts()
   const docs = await col
-    .find({ status: 'published', authorId: String(authorId) })
+    .find({ status: 'published', authorId: String(authorId), ...ZEFRACT_SCOPE })
     .sort({ publishedAt: -1 })
     .toArray()
   return docs.map(toPost)
@@ -797,7 +815,7 @@ export async function getPublishedTags(): Promise<
 
 export async function getAllPostsForAdmin(): Promise<BlogPost[]> {
   const col = await posts()
-  const docs = await col.find({}).sort({ updatedAt: -1 }).toArray()
+  const docs = await col.find(ZEFRACT_SCOPE).sort({ updatedAt: -1 }).toArray()
   return docs.map(toPost)
 }
 
@@ -816,7 +834,7 @@ export async function getAllPostsForAdmin(): Promise<BlogPost[]> {
 export async function getUsedCategories(): Promise<string[]> {
   if (!dbConfigured()) return []
   const col = await posts()
-  const values = await col.distinct('category', { category: { $nin: [null, ''] } })
+  const values = await col.distinct('category', { category: { $nin: [null, ''] }, ...ZEFRACT_SCOPE })
   return values
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
     .sort((a, b) => a.localeCompare(b))
@@ -833,7 +851,7 @@ export async function getUsedCategories(): Promise<string[]> {
 export async function getUsedTags(): Promise<string[]> {
   if (!dbConfigured()) return []
   const col = await posts()
-  const values = await col.distinct('tags')
+  const values = await col.distinct('tags', ZEFRACT_SCOPE)
   return values
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
     .sort((a, b) => a.localeCompare(b))

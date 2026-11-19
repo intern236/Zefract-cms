@@ -1,4 +1,4 @@
-﻿import 'server-only'
+import 'server-only'
 import { sys } from '@cms-logic/lib/db'
 import { cmsUrl } from '@cms-logic/lib/env'
 import { agencyBrand, sendMail, workspaceBrand } from '@cms-logic/lib/mail'
@@ -33,7 +33,7 @@ export async function requestReset(rawEmail: string, brandFor?: { name: string; 
   await sendMail({
     to: { name: user.name, address: user.email },
     fromName: brand.name,
-    email: resetEmail({ brand, name: user.name, url: `${cmsUrl()}/reset/${token}`, minutes: RESET_MINUTES }),
+    email: resetEmail({ brand, name: user.name, url: `${cmsUrl()}/cms/reset/${token}`, minutes: RESET_MINUTES }),
   })
 }
 

@@ -765,8 +765,14 @@ export function openMongo(url: string, options: { onCommand?: (event: CommandSta
     monitorCommands: Boolean(options.onCommand),
   })
   if (options.onCommand) client.on('commandStarted', options.onCommand)
-  /* The database named in the URL (mongodb://host/<name>), or "cms". */
-  const db = client.db(new URL(url.replace(/^mongodb(\+srv)?:/, 'http:')).pathname.slice(1) || 'cms')
+  /* The database named by MONGODB_DB (if a name), or in the URL, or "cms" (default from previous phase). */
+  const dbName =
+    (process.env.MONGODB_DB && !/^mongodb(\+srv)?:\/\//.test(process.env.MONGODB_DB)
+      ? process.env.MONGODB_DB
+      : undefined) ||
+    new URL(url.replace(/^mongodb(\+srv)?:/, 'http:')).pathname.slice(1) ||
+    'cms'
+  const db = client.db(dbName)
   const c = collections(db)
   const ready = (async () => {
     await client.connect()

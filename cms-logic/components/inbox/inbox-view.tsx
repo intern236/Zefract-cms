@@ -1,4 +1,4 @@
-﻿import Link from 'next/link'
+import Link from 'next/link'
 import { ArrowLeft, DownloadSimple } from '@phosphor-icons/react/dist/ssr'
 import { Avatar } from '@cms-logic/components/ui/avatar'
 import { Button } from '@cms-logic/components/ui/button'
@@ -28,7 +28,7 @@ export function InboxView({
   selected: ContactMessage | null
   counts: { unread: number }
 }) {
-  const base = `/${workspace}/inbox`
+  const base = `/cms/${workspace}/inbox`
   const qs = (f: InboxFilter) => inboxQs(f, q)
   return (
     <>

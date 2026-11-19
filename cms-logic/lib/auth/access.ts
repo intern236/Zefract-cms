@@ -73,7 +73,7 @@ export const getAccess = cache(async (slug: string): Promise<Access | null> => {
 
 export async function requireUser(next?: string): Promise<SessionUser> {
   const user = await currentSession()
-  if (!user) redirect(next ? `/cms/login?next=${encodeURIComponent(next)}` : '/cms/login')
+  if (!user) redirect(next ? `/login?next=${encodeURIComponent(next)}` : '/login')
   return user
 }
 
@@ -86,7 +86,7 @@ export async function requireAgency(): Promise<SessionUser> {
 /** For pages. Redirects to sign-in, 404s for strangers, bounces a missing permission to the dashboard. */
 export async function requireWorkspace(slug: string, permission?: Permission): Promise<Access> {
   const [user, access] = await Promise.all([currentSession(), getAccess(slug)])
-  if (!user) redirect(`/cms/${slug}/login`)
+  if (!user) redirect('/login')
   if (!access) notFound()
   if (permission && !can(access.role, permission)) redirect(`/cms/${slug}?denied=1`)
   return access

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { TimeAgo } from '@cms-logic/components/ui/time-ago'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -312,7 +312,7 @@ export function PostEditor({ post, ctx }: { post: EditorPost | null; ctx: Editor
       else if (!opts.silent) toast.success('Saved')
       if (!id) {
         setId(result.id)
-        router.replace(`/${ctx.workspace}/posts/${result.id}`, { scroll: false })
+        router.replace(`/cms/${ctx.workspace}/posts/${result.id}`, { scroll: false })
       }
       return result
     },
@@ -380,7 +380,7 @@ export function PostEditor({ post, ctx }: { post: EditorPost | null; ctx: Editor
     <div className="-mx-5 -mt-8 sm:-mx-8 lg:-mx-12 lg:-mt-12">
       {/* Top bar */}
       <div className="sticky top-14 z-20 flex h-16 items-center gap-2 border-b border-line bg-canvas/85 px-4 backdrop-blur-xl sm:px-6 lg:top-0 lg:rounded-t-[26px]">
-        <Link href={`/${ctx.workspace}/posts`} prefetch className="grid size-9 place-items-center rounded-full text-muted transition hover:bg-sunken hover:text-ink" aria-label="Back to posts">
+        <Link href={`/cms/${ctx.workspace}/posts`} prefetch className="grid size-9 place-items-center rounded-full text-muted transition hover:bg-sunken hover:text-ink" aria-label="Back to posts">
           <ArrowLeft size={18} />
         </Link>
         <StatusPill status={status} />
@@ -569,7 +569,7 @@ export function PostEditor({ post, ctx }: { post: EditorPost | null; ctx: Editor
           if (r.ok) {
             setDirty(false)
             toast.success('Post deleted')
-            router.push(`/${ctx.workspace}/posts`)
+            router.push(`/cms/${ctx.workspace}/posts`)
           } else toast.error(r.error)
         }}
       />
@@ -711,7 +711,7 @@ export function PostEditor({ post, ctx }: { post: EditorPost | null; ctx: Editor
                           </button>
                         ))}
                         {ctx.authors.length === 0 && (
-                          <Link href={`/${ctx.workspace}/authors`} {...prefetchOnHover} className="px-2.5 text-[12.5px] text-muted underline-offset-4 hover:text-ink hover:underline">
+                          <Link href={`/cms/${ctx.workspace}/authors`} {...prefetchOnHover} className="px-2.5 text-[12.5px] text-muted underline-offset-4 hover:text-ink hover:underline">
                             Add authors →
                           </Link>
                         )}

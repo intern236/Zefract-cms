@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Plus } from '@phosphor-icons/react/dist/ssr'
 import { PostsList, type PostRow } from '@cms-logic/components/posts/posts-list'
@@ -61,7 +61,7 @@ export default async function PostsPage({
         actions={
           can(role, 'posts.create') && (
             <Button asChild variant="brand">
-              <Link href={`/${slug}/posts/new`} prefetch>
+              <Link href={`/cms/${slug}/posts/new`} prefetch>
                 <Plus weight="bold" />
                 New post
               </Link>
@@ -69,7 +69,7 @@ export default async function PostsPage({
           )
         }
       />
-      <PostsList base={`/${slug}`} posts={rows} status={status} q={q} canCreate={can(role, 'posts.create')} />
+      <PostsList base={`/cms/${slug}`} posts={rows} status={status} q={q} canCreate={can(role, 'posts.create')} />
     </>
   )
 }

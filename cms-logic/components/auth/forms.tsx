@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
@@ -47,10 +47,9 @@ export function PasswordMeter({ value }: { value: string }) {
   )
 }
 
-export function SetupForm({ needsToken, dev }: { needsToken: boolean; dev: boolean }) {
+export function SetupForm({ needsToken }: { needsToken: boolean; dev?: boolean }) {
   const [state, action, pending] = useActionState<SetupState, FormData>(completeSetup, {})
   const [password, setPassword] = useState('')
-  const [demo, setDemo] = useState(dev)
   // Controlled, so a failed submit (React resets uncontrolled forms after an action) keeps what was typed.
   const [token, setToken] = useState('')
   const [name, setName] = useState('')
@@ -86,18 +85,6 @@ export function SetupForm({ needsToken, dev }: { needsToken: boolean; dev: boole
             </>
           )}
         </Field>
-        {/* {dev && (
-          <label className="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-line bg-surface p-4">
-            <span>
-              <span className="block text-sm font-medium text-ink">Add demo clients</span>
-              <span className="mt-0.5 block text-[13px] leading-snug text-muted">
-                Three sample clients with posts, authors, enquiries and a team — and the example site connected for you.
-              </span>
-            </span>
-            <Switch checked={demo} onCheckedChange={setDemo} />
-            <input type="hidden" name="demo" value={demo ? 'on' : 'off'} />
-          </label>
-        )} */}
         <ErrorLine error={state.error} />
         <Button type="submit" variant="brand" size="lg" loading={pending} className="group mt-2 w-full">
           Create account
@@ -124,7 +111,7 @@ export function ForgotForm({ workspace }: { workspace?: string }) {
             <PaperPlaneTilt size={26} />
           </motion.div>
           <Heading title="Check your inbox" body="If that email has an account, a reset link is on its way. It works once, for 30 minutes." />
-          <Link href={workspace ? `/${workspace}/login` : '/login'} className="mt-8 inline-flex text-sm font-medium text-ink underline decoration-brand decoration-2 underline-offset-4">
+          <Link href="/login" className="mt-8 inline-flex text-sm font-medium text-ink underline decoration-brand decoration-2 underline-offset-4">
             Back to sign in
           </Link>
         </motion.div>
@@ -138,7 +125,7 @@ export function ForgotForm({ workspace }: { workspace?: string }) {
             <Button type="submit" variant="brand" size="lg" loading={pending} className="mt-2 w-full">
               Send reset link
             </Button>
-            <Link href={workspace ? `/${workspace}/login` : '/login'} className="self-center text-[13px] text-muted hover:text-ink">
+            <Link href="/login" className="self-center text-[13px] text-muted hover:text-ink">
               Back to sign in
             </Link>
           </form>
@@ -207,7 +194,7 @@ export function InviteForm({
         <div className="mt-8 flex flex-col gap-3">
           <p className="text-[15px] text-muted">You already have an account. Sign in, then open this link again.</p>
           <Button asChild variant="brand" size="lg" className="w-full">
-            <Link href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`}>Sign in to accept</Link>
+            <Link href={`/login?next=${encodeURIComponent(`/cms/invite/${token}`)}`}>Sign in to accept</Link>
           </Button>
         </div>
       )}

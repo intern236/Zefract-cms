@@ -9,7 +9,6 @@ import { Button } from '@cms-logic/components/ui/button'
 import { EmptyState, Stagger } from '@cms-logic/components/ui/misc'
 import { PageHeader } from '@cms-logic/components/ui/page-header'
 import { requireAgency } from '@cms-logic/lib/auth/access'
-import { DEMO_PASSWORD } from '@cms-logic/lib/demo'
 import { agencyOverview, agencyPublishing } from '@cms-logic/lib/workspaces'
 import { Fresh } from '@cms-logic/components/fresh/fresh'
 import { prefetchOnHover } from '@cms-logic/lib/prefetch'
@@ -59,7 +58,7 @@ export default async function AgencyHome({ searchParams }: { searchParams: Promi
         }
       />
 
-      {welcome && <WelcomePanel demo={welcome === 'demo'} password={DEMO_PASSWORD} />}
+      {welcome && <WelcomePanel />}
 
       <Stagger className="grid grid-flow-dense grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Clients" value={clients.length} hint="Active workspaces" tone="ink" />
@@ -67,7 +66,7 @@ export default async function AgencyHome({ searchParams }: { searchParams: Promi
         <div className="col-span-2 row-span-2 flex min-h-[176px] flex-col rounded-[22px] border border-line bg-surface p-5 shadow-card">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">Publishing, last 30 days</span>
-            <span className="font-mono text-[11px] text-faint">all clients</span>
+            <span className="font-serif text-2xl leading-none">{last30}</span>
           </div>
           <BarChart data={daily} className="mt-auto" height={240} />
         </div>
@@ -76,8 +75,8 @@ export default async function AgencyHome({ searchParams }: { searchParams: Promi
       </Stagger>
 
       <div className="mt-14 flex items-end justify-between gap-4">
-        <h2 className="font-serif text-[34px] leading-none tracking-[-0.015em]">{archived === '1' ? 'All clients' : 'Clients'}</h2>
-        <Link href={archived === '1' ? '/agency' : '/agency?archived=1'} {...prefetchOnHover} className="text-[13px] text-muted hover:text-ink">
+        <h2 className="font-serif text-[30px] leading-none tracking-[-0.015em]">{archived === '1' ? 'All clients' : 'Clients'}</h2>
+        <Link href={archived === '1' ? '/cms/agency' : '/cms/agency?archived=1'} {...prefetchOnHover} className="text-[13px] text-muted hover:text-ink">
           {archived === '1' ? 'Hide archived' : 'Show archived'}
         </Link>
       </div>

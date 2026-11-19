@@ -4,7 +4,6 @@ import { AdminBar } from '@/components/admin/admin-bar'
 import { AdminShell } from '@/components/admin/admin-shell'
 import { StatusPill } from '@/components/admin/status-pill'
 import { DeletePostButton } from '@/components/admin/delete-post-button'
-import { logout } from '@/app/admin/login/actions'
 import { getAllPostsForAdmin, formatPostDate } from '@/lib/blog'
 
 /**
@@ -31,44 +30,22 @@ export default async function AdminBlogListPage() {
 
   return (
     <AdminShell>
-      <AdminBar
-        title="Posts"
-        actions={
-          <>
-            <Link
-              href="/blog"
-              target="_blank"
-              rel="noreferrer"
-              className="hidden h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-[13px] font-semibold text-head transition-colors hover:border-brand/50 hover:text-brand-strong sm:inline-flex"
-            >
-              <ExternalLink className="size-3.5" aria-hidden="true" />
-              View blog
-            </Link>
-            {/* A form, not a link: logout mutates (clears the cookie), and a
-                GET that mutates is the thing prefetchers and crawlers trip. */}
-            <form action={logout}>
-              <button
-                type="submit"
-                className="inline-flex h-9 items-center rounded-full px-3 text-[13px] font-semibold text-mut transition-colors hover:text-head"
-              >
-                Log out
-              </button>
-            </form>
-            <Link
-              href="/admin/blog/new"
-              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand px-4 text-[13px] font-semibold text-ink transition-colors hover:bg-brand-hover"
-            >
-              <Plus className="size-3.5" aria-hidden="true" />
-              New post
-            </Link>
-          </>
-        }
-      />
-
       <main className="mt-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-surface p-4">
+          <div>
+            <h2 className="text-[14px] font-bold text-head">Agency Studio CMS</h2>
+            <p className="text-[13px] text-mut">Manage client workspaces, team, invitations, and studio operations.</p>
+          </div>
+          <Link
+            href="/admin/cms/agency"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-ink px-4 text-[13px] font-semibold text-white transition-transform hover:-translate-y-0.5 hover:bg-ink-2"
+          >
+            Open Agency CMS →
+          </Link>
+        </div>
         <div>
           {posts.length > 0 ? (
-            <p className="mb-3 text-[13px] text-mut">
+            <p className="mb-6 text-[13px] text-mut">
               {published} published · {posts.length - published} draft
             </p>
           ) : null}
@@ -135,6 +112,31 @@ export default async function AdminBlogListPage() {
           )}
         </div>
       </main>
+
+      <AdminBar
+        title="Posts"
+        actions={
+          <div className="flex items-center gap-3">
+            <Link
+              href="/blog"
+              target="_blank"
+              rel="noreferrer"
+              className="hidden h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-[13px] font-semibold text-head transition-colors hover:border-brand/50 hover:text-brand-strong sm:inline-flex"
+            >
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+              View blog
+            </Link>
+
+            <Link
+              href="/admin/blog/new"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand px-4 text-[13px] font-semibold text-ink transition-colors hover:bg-brand-hover"
+            >
+              <Plus className="size-3.5" aria-hidden="true" />
+              New post
+            </Link>
+          </div>
+        }
+      />
     </AdminShell>
   )
 }

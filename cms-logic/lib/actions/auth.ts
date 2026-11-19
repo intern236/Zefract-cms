@@ -39,6 +39,48 @@ function str(form: FormData, key: string): string {
   return typeof v === 'string' ? v : ''
 }
 
+async function redirectAfterLogin(
+  userId: string,
+  explicitWorkspace?: string,
+  next?: string
+): Promise<void> {
+  const safe = safeNext(next)
+  if (safe) redirect(safe)
+
+  if (explicitWorkspace) redirect(`/cms/${explicitWorkspace}`)
+
+  const db = await sys()
+  const user = await db.users.byId(userId)
+  if (user?.isAgency) {
+    try {
+      const { signSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } = await import('@/lib/admin-session')
+      const adminToken = await signSessionToken()
+      if (adminToken) {
+        const { cookies } = await import('next/headers')
+        const jar = await cookies()
+        jar.set(SESSION_COOKIE, adminToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: SESSION_MAX_AGE_SECONDS,
+        })
+      }
+    } catch {
+      // ignore if admin token secret not configured
+    }
+    redirect('/admin/cms/agency')
+  }
+
+  // Client user: find the workspace allotted to them and redirect directly
+  const allotted = await db.members.workspacesOf(userId)
+  if (allotted.length > 0) {
+    redirect(`/cms/${allotted[0].slug}`)
+  }
+
+  redirect('/cms')
+}
+
 export async function login(_prev: LoginState, form: FormData): Promise<LoginState> {
   const email = normaliseEmail(str(form, 'email'))
   const password = str(form, 'password')
@@ -64,7 +106,8 @@ export async function login(_prev: LoginState, form: FormData): Promise<LoginSta
   }
 
   await createSession(user.id)
-  redirect(safeNext(str(form, 'next')) ?? (workspaceSlug ? `/cms/${workspaceSlug}` : '/cms'))
+  await redirectAfterLogin(user.id, workspaceSlug, str(form, 'next'))
+  return { step: 'password' }
 }
 
 export async function verifyCode(prev: LoginState, form: FormData): Promise<LoginState> {
@@ -76,7 +119,8 @@ export async function verifyCode(prev: LoginState, form: FormData): Promise<Logi
     await clearFailures(ipk)
     await createSession(result.userId)
     const workspaceSlug = str(form, 'workspace')
-    redirect(safeNext(str(form, 'next')) ?? (workspaceSlug ? `/cms/${workspaceSlug}` : '/cms'))
+    await redirectAfterLogin(result.userId, workspaceSlug, str(form, 'next'))
+    return { step: 'password' }
   }
   await recordFailure(ipk)
   if (result.status === 'wrong') return { step: 'code', maskedEmail: masked, error: 'That code is not right. Check the latest email.' }
@@ -85,8 +129,11 @@ export async function verifyCode(prev: LoginState, form: FormData): Promise<Logi
 
 export async function logout(form?: FormData): Promise<void> {
   await destroyCurrentSession()
-  const slug = form ? str(form, 'workspace') : ''
-  redirect(slug && /^[a-z0-9-]+$/.test(slug) ? `/cms/${slug}/login` : '/cms/login')
+  const invite = form ? str(form, 'invite') : ''
+  if (invite) {
+    redirect(`/login?invite=${encodeURIComponent(invite)}`)
+  }
+  redirect('/login')
 }
 
 // ---- Password reset ----------------------------------------------------------
@@ -137,7 +184,7 @@ export async function acceptInvite(_prev: InviteState, form: FormData): Promise<
     await recordFailure(ipk)
     return { error: 'This invite has expired, was revoked, or was already used.' }
   }
-  const destination = invite.workspace ? `/cms/${invite.workspace.slug}` : '/cms/agency'
+  const destination = invite.workspace ? `/cms/${invite.workspace.slug}` : '/admin/cms/agency'
   const session = await currentSession()
 
   if (invite.existingUserId) {
@@ -173,5 +220,26 @@ export async function acceptInvite(_prev: InviteState, form: FormData): Promise<
     return { error: 'This invite was already used.' }
   }
   await createSession(userId)
+
+  if (invite.role === 'agency') {
+    try {
+      const { signSessionToken, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } = await import('@/lib/admin-session')
+      const adminToken = await signSessionToken()
+      if (adminToken) {
+        const { cookies } = await import('next/headers')
+        const jar = await cookies()
+        jar.set(SESSION_COOKIE, adminToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: SESSION_MAX_AGE_SECONDS,
+        })
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   redirect(destination)
 }

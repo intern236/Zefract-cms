@@ -48,6 +48,7 @@ export interface Author {
   websiteUrl: string | null
   createdAt: Date
   updatedAt: Date
+  workspaceId?: string | null
 }
 
 /**
