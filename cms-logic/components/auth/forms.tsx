@@ -111,7 +111,7 @@ export function ForgotForm({ workspace }: { workspace?: string }) {
             <PaperPlaneTilt size={26} />
           </motion.div>
           <Heading title="Check your inbox" body="If that email has an account, a reset link is on its way. It works once, for 30 minutes." />
-          <Link href="/login" className="mt-8 inline-flex text-sm font-medium text-ink underline decoration-brand decoration-2 underline-offset-4">
+          <Link href="/cms/login" className="mt-8 inline-flex text-sm font-medium text-ink underline decoration-brand decoration-2 underline-offset-4">
             Back to sign in
           </Link>
         </motion.div>
@@ -125,7 +125,7 @@ export function ForgotForm({ workspace }: { workspace?: string }) {
             <Button type="submit" variant="brand" size="lg" loading={pending} className="mt-2 w-full">
               Send reset link
             </Button>
-            <Link href="/login" className="self-center text-[13px] text-muted hover:text-ink">
+            <Link href="/cms/login" className="self-center text-[13px] text-muted hover:text-ink">
               Back to sign in
             </Link>
           </form>
@@ -194,7 +194,7 @@ export function InviteForm({
         <div className="mt-8 flex flex-col gap-3">
           <p className="text-[15px] text-muted">You already have an account. Sign in, then open this link again.</p>
           <Button asChild variant="brand" size="lg" className="w-full">
-            <Link href={`/login?next=${encodeURIComponent(`/cms/invite/${token}`)}`}>Sign in to accept</Link>
+            <Link href={`/cms/login?next=${encodeURIComponent(`/cms/invite/${token}`)}`}>Sign in to accept</Link>
           </Button>
         </div>
       )}

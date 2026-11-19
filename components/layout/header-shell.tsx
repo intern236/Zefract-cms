@@ -249,7 +249,7 @@ export function HeaderShell({
               </form>
             ) : (
               <Link
-                href="/login"
+                href="/cms/login"
                 className="hidden rounded-full bg-ink px-5 py-3 font-mono text-[11px] font-medium tracking-[0.14em] text-white uppercase shadow-[0_14px_30px_-12px_rgba(8,20,34,0.45)] transition hover:-translate-y-0.5 hover:bg-ink-2 sm:inline-flex"
               >
                 Sign in
@@ -333,7 +333,7 @@ export function HeaderShell({
                     </form>
                   ) : (
                     <Link
-                      href="/login"
+                      href="/cms/login"
                       onClick={() => setMobileOpen(false)}
                       className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-line py-3.5 font-mono text-[12px] tracking-[0.14em] text-head uppercase transition hover:bg-ink/5"
                     >

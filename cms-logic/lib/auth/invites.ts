@@ -51,7 +51,7 @@ export async function createInvite(input: {
     expiresAt: new Date(Date.now() + INVITE_DAYS * 86_400_000),
   })
 
-  const url = `${cmsUrl()}/login?invite=${token}`
+  const url = `${cmsUrl()}/cms/login?invite=${token}`
   let brand = agencyBrand()
   let workspaceName: string | null = null
   if (input.workspaceId) {

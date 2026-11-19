@@ -343,12 +343,7 @@ function UserMenu({ user, workspace }: Pick<ShellProps, 'user' | 'workspace'>) {
         </MenuItem>
         <MenuSeparator />
         <form action={logout}>
-          <MenuItem danger asChild>
-            <button type="submit" className="flex w-full items-center gap-2.5">
-              <SignOut />
-              Sign out
-            </button>
-          </MenuItem>
+
         </form>
       </MenuContent>
     </Menu>

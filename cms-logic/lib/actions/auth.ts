@@ -131,9 +131,9 @@ export async function logout(form?: FormData): Promise<void> {
   await destroyCurrentSession()
   const invite = form ? str(form, 'invite') : ''
   if (invite) {
-    redirect(`/login?invite=${encodeURIComponent(invite)}`)
+    redirect(`/cms/login?invite=${encodeURIComponent(invite)}`)
   }
-  redirect('/login')
+  redirect('/cms/login')
 }
 
 // ---- Password reset ----------------------------------------------------------

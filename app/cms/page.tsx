@@ -12,8 +12,8 @@ import { prefetchOnHover } from '@cms-logic/lib/prefetch'
 export default async function Home() {
   const user = await currentSession()
   if (user?.isAgency) redirect('/cms/agency')
-  if ((await userCount()) === 0) redirect('/cms/setup')
-  if (!user) redirect('/login')
+  if ((await userCount()) === 0) redirect('/admin/login')
+  if (!user) redirect('/cms/login')
   const workspaces = await listMyWorkspaces()
   if (workspaces.length > 0) redirect(`/cms/${workspaces[0].slug}`)
   return (

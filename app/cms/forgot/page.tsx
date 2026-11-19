@@ -1,27 +1,27 @@
-﻿import type { Metadata } from 'next'
-import { brandStyle } from '@cms-logic/lib/brand-style'
-import { AuthShell } from '@cms-logic/components/auth/auth-shell'
-import { ForgotForm } from '@cms-logic/components/auth/forms'
-import { getWorkspaceBySlug } from '@cms-logic/lib/auth/access'
-import { agencyAccent, agencyName } from '@cms-logic/lib/env'
+import type { Metadata } from 'next'
+import { Container } from '@/components/ui/section'
+import { ForgotPasswordForm } from './forgot-form'
 
-export const metadata: Metadata = { title: 'Reset password' }
+export const metadata: Metadata = {
+  title: 'Reset password',
+  alternates: {},
+  robots: { index: false, follow: false },
+}
 
-export default async function ForgotPage({ searchParams }: { searchParams: Promise<{ workspace?: string }> }) {
+export default async function ForgotPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ workspace?: string }>
+}) {
   const { workspace } = await searchParams
-  const ws = typeof workspace === 'string' ? await getWorkspaceBySlug(workspace) : null
-  const known = ws && !ws.archived ? ws : null
+
   return (
-    <div style={known ? brandStyle(known.accent) : undefined}>
-      <AuthShell
-        brand={
-          known
-            ? { name: known.name, slug: known.slug, accent: known.accent, hasLogo: known.hasLogo, agency: agencyName() }
-            : { name: agencyName(), slug: null, accent: agencyAccent(), hasLogo: false, agency: agencyName() }
-        }
-      >
-        <ForgotForm workspace={known?.slug} />
-      </AuthShell>
-    </div>
+    <section data-admin-surface className="hero-grid relative isolate overflow-clip px-0 pt-36 pb-28 md:pt-44">
+      <Container>
+        <div className="mx-auto max-w-[440px]">
+          <ForgotPasswordForm workspace={typeof workspace === 'string' ? workspace : undefined} />
+        </div>
+      </Container>
+    </section>
   )
 }

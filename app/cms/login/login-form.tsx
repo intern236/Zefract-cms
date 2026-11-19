@@ -39,7 +39,7 @@ export function LoginForm({
   )
 
   // ---------------------------------------------------------------------------
-  // 1. INVITE FLOW (when arriving via /login?invite=<token>)
+  // 1. INVITE FLOW (when arriving via /cms/login?invite=<token>)
   // ---------------------------------------------------------------------------
   if (invite) {
     if (invite.mode === 'expired') {
@@ -52,7 +52,7 @@ export function LoginForm({
             Invites work once, for 7 days. Ask whoever invited you to send a new one.
           </p>
           <div className="mt-7 border-t border-line pt-6">
-            <Link href="/login" className="block">
+            <Link href="/cms/login" className="block">
               <PillButton variant="ink" className="w-full">
                 Go to sign in
               </PillButton>
@@ -83,7 +83,7 @@ export function LoginForm({
               </PillButton>
             </form>
             <div className="mt-4 text-center">
-              <Link href="/login" className="text-[13px] text-mut transition-colors hover:text-head hover:underline">
+              <Link href="/cms/login" className="text-[13px] text-mut transition-colors hover:text-head hover:underline">
                 Or return to login
               </Link>
             </div>
@@ -103,7 +103,7 @@ export function LoginForm({
             Sign in with your password to accept this workspace invite.
           </p>
           <div className="mt-7 border-t border-line pt-6">
-            <Link href={`/login?next=${encodeURIComponent(`/login?invite=${invite.token}`)}`} className="block">
+            <Link href={`/cms/login?next=${encodeURIComponent(`/cms/login?invite=${invite.token}`)}`} className="block">
               <PillButton variant="ink" className="w-full">
                 Sign in to accept
               </PillButton>
@@ -142,7 +142,6 @@ export function LoginForm({
     }
 
     // Default: invite.mode === 'new'
-    // As requested: One label is for Name, other is for Password, following the old CMS authentication logic.
     return (
       <form action={inviteAction} className="card-pop rounded-card border border-line bg-surface p-7 md:p-9">
         <input type="hidden" name="token" value={invite.token} />

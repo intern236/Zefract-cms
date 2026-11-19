@@ -195,5 +195,5 @@ export async function logout(): Promise<void> {
   } catch {
     // ignore
   }
-  redirect('/login')
+  redirect('/cms/login')
 }

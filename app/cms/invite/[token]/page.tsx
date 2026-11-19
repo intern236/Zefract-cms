@@ -6,5 +6,5 @@ export default async function InvitePage({
   params: Promise<{ token: string }>
 }) {
   const { token } = await params
-  redirect(`/login?invite=${encodeURIComponent(token)}`)
+  redirect(`/cms/login?invite=${encodeURIComponent(token)}`)
 }

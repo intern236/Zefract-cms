@@ -416,27 +416,27 @@
 
 /* ---------------------------------------------------------------------------
    CMS Isolation:
-   When inside the CMS surface, hide marketing website chrome (header, footer,
-   floating WhatsApp button, back to top, cursor ring) without modifying the
-   marketing website UI files.
+   When inside the CMS surface (except for auth pages with [data-admin-surface]),
+   hide marketing website chrome (header, footer, floating WhatsApp button,
+   back to top, cursor ring) without modifying the marketing website UI files.
    --------------------------------------------------------------------------- */
-body:has([data-cms-surface])>div:has(> header),
-body:has([data-cms-surface])>div>header,
-body:has([data-cms-surface]) header,
-body:has([data-cms-surface]) footer,
-body:has([data-cms-surface]) [data-skip-link],
-body:has([data-cms-surface]) [data-to-top],
-body:has([data-cms-surface]) [data-whatsapp],
-body:has([data-cms-surface]) .cursor-ring,
-body:has([data-cms-surface]) aside[aria-label="Cookie preferences"] {
+body:has([data-cms-surface]):not(:has([data-admin-surface]))>div:has(> header),
+body:has([data-cms-surface]):not(:has([data-admin-surface]))>div>header,
+body:has([data-cms-surface]):not(:has([data-admin-surface])) header,
+body:has([data-cms-surface]):not(:has([data-admin-surface])) footer,
+body:has([data-cms-surface]):not(:has([data-admin-surface])) [data-skip-link],
+body:has([data-cms-surface]):not(:has([data-admin-surface])) [data-to-top],
+body:has([data-cms-surface]):not(:has([data-admin-surface])) [data-whatsapp],
+body:has([data-cms-surface]):not(:has([data-admin-surface])) .cursor-ring,
+body:has([data-cms-surface]):not(:has([data-admin-surface])) aside[aria-label="Cookie preferences"] {
   display: none !important;
 }
 
-body:has([data-cms-surface]) {
+body:has([data-cms-surface]):not(:has([data-admin-surface])) {
   background-color: var(--canvas, #f1f3f6) !important;
 }
 
-body:has([data-cms-surface]) #main {
+body:has([data-cms-surface]):not(:has([data-admin-surface])) #main {
   padding: 0 !important;
   margin: 0 !important;
   display: block !important;

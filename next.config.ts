@@ -231,8 +231,13 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/login',
+        destination: '/cms/login',
+        permanent: true,
+      },
+      {
         source: '/invite/:token',
-        destination: '/login?invite=:token',
+        destination: '/cms/login?invite=:token',
         permanent: false,
       },
       {
