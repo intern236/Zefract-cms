@@ -5,6 +5,7 @@ import { Providers } from '@cms-logic/components/providers/providers'
 import { agencyAccent, agencyName } from '@cms-logic/lib/env'
 import { accentForeground } from '@cms-logic/lib/workspaces/settings'
 import './globals.css'
+// import '../../../../app/cms/globals.css'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist', display: 'swap' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono', display: 'swap' })

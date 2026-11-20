@@ -105,6 +105,7 @@
   * {
     @apply border-border;
   }
+
   /* The scrollbar's space is reserved whether or not a scrollbar is currently there.
      Without this, the intro's scroll lock (`html[data-intro] { overflow: hidden }`)
      takes the scrollbar away for the ~3s the panel is up, which widens the viewport
@@ -122,18 +123,21 @@
   html {
     scrollbar-gutter: stable;
   }
+
   body {
     @apply bg-page text-head font-sans antialiased;
     font-size: 16.5px;
     line-height: 1.6;
     overflow-x: clip;
   }
+
   /* The nav is fixed, so anchor targets must clear it — WCAG 2.2 SC 2.4.11
      (Focus Not Obscured) fails otherwise when tabbing to in-page links. */
   :target,
   [id] {
     scroll-margin-top: 6.5rem;
   }
+
   /* Focus ring.
      The orange ring measured 2.43:1 against the hero and CTA glow (~#EECABE),
      failing SC 1.4.11 exactly where the primary CTAs sit — so the ring itself is
@@ -144,9 +148,11 @@
     outline-offset: 2px;
     box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-brand) 34%, transparent);
   }
+
   .on-ink :focus-visible {
     --focus-ring: #ffffff;
   }
+
   @media (forced-colors: active) {
     :is(a, button, summary, [tabindex]):focus-visible {
       outline: 3px solid Highlight;
@@ -156,6 +162,7 @@
 }
 
 @layer components {
+
   /* Faint graph-paper grid behind the hero, fading out toward the bottom. */
   .hero-grid::before {
     content: "";
@@ -168,6 +175,7 @@
     -webkit-mask-image: linear-gradient(#000 55%, transparent 95%);
     mask-image: linear-gradient(#000 55%, transparent 95%);
   }
+
   /* Warm glow rising from the fold. */
   .hero-grid::after {
     content: "";
@@ -179,11 +187,9 @@
     height: clamp(240px, 36vw, 470px);
     z-index: -1;
     pointer-events: none;
-    background: radial-gradient(
-      55% 62% at 50% 100%,
-      rgba(230, 85, 30, 0.24),
-      rgba(230, 85, 30, 0) 70%
-    );
+    background: radial-gradient(55% 62% at 50% 100%,
+        rgba(230, 85, 30, 0.24),
+        rgba(230, 85, 30, 0) 70%);
     /* Grows out of the fold rather than the centre of the glow. */
     transform-origin: 50% 100%;
     /* Blooms up once as the page paints, then holds.
@@ -243,23 +249,28 @@
     /* The focus ring would otherwise be clipped by this element's own overflow. */
     outline-offset: -3px;
   }
+
   @media (min-width: 640px) {
     .carousel-viewport {
       --per: 2;
     }
   }
+
   @media (min-width: 1024px) {
     .carousel-viewport {
       --per: 3;
     }
   }
+
   .carousel-viewport::-webkit-scrollbar {
     display: none;
   }
+
   .carousel-track {
     display: flex;
     gap: var(--gap);
   }
+
   .carousel-slide {
     flex: 0 0 auto;
     width: calc((100% - (var(--per) - 1) * var(--gap)) / var(--per));
@@ -321,9 +332,11 @@
     --orb: clamp(200px, 24vw, 340px);
     left: calc(50% - var(--orb) / 2);
   }
+
   .hero-orb-t {
     top: calc(var(--orb) * -0.47);
   }
+
   .hero-orb-b {
     bottom: calc(var(--orb) * -0.47);
   }
@@ -372,7 +385,7 @@
   }
 
   /* The train. */
-  .hero-trail > span {
+  .hero-trail>span {
     position: absolute;
     animation: var(--travel) var(--dur) linear infinite var(--dir, normal);
   }
@@ -380,7 +393,7 @@
   /* One dot. Position and opacity come from the call site - see hero-ambient.tsx,
      which builds the fade-back and puts the leading dot at whichever end matches
      the direction of travel. */
-  .hero-trail > span > i {
+  .hero-trail>span>i {
     position: absolute;
     width: var(--dot);
     height: var(--dot);
@@ -390,7 +403,7 @@
 
   /* Only the leading dot is haloed. Glowing the whole train would flatten exactly
      the front-to-back reading the opacity ramp exists to create. */
-  .hero-trail > span > i[data-lead] {
+  .hero-trail>span>i[data-lead] {
     box-shadow: 0 0 8px 1px color-mix(in srgb, var(--color-brand) 45%, transparent);
   }
 
@@ -400,13 +413,15 @@
     width: 100%;
     height: var(--dot);
   }
-  .hero-trail-h > span {
+
+  .hero-trail-h>span {
     top: 0;
     left: 0;
     width: 100%;
     height: var(--dot);
   }
-  .hero-trail-h > span > i {
+
+  .hero-trail-h>span>i {
     top: 0;
   }
 
@@ -416,13 +431,15 @@
     height: 100%;
     width: var(--dot);
   }
-  .hero-trail-v > span {
+
+  .hero-trail-v>span {
     left: 0;
     top: 0;
     height: 100%;
     width: var(--dot);
   }
-  .hero-trail-v > span > i {
+
+  .hero-trail-v>span>i {
     left: 0;
   }
 
@@ -440,6 +457,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -452,6 +470,7 @@
   from {
     transform: translateX(calc(var(--train) * -1));
   }
+
   to {
     transform: translateX(calc(100% + var(--train)));
   }
@@ -461,6 +480,7 @@
   from {
     transform: translateY(calc(var(--train) * -1));
   }
+
   to {
     transform: translateY(calc(100% + var(--train)));
   }
@@ -470,10 +490,12 @@
    is exactly where the hop below fires - so a trail is never seen jumping sideways,
    only arriving somewhere new. */
 @keyframes trail-fade {
+
   0%,
   100% {
     opacity: 0;
   }
+
   8%,
   86% {
     opacity: 1;
@@ -485,18 +507,22 @@
    lands on is a real grid line - four lines times four positions is what keeps it
    from reading as four fixed streaks. */
 @keyframes hop-x {
+
   0%,
   24.99% {
     transform: translateX(var(--hop1, 0px));
   }
+
   25%,
   49.99% {
     transform: translateX(var(--hop2, 0px));
   }
+
   50%,
   74.99% {
     transform: translateX(var(--hop3, 0px));
   }
+
   75%,
   100% {
     transform: translateX(var(--hop4, 0px));
@@ -506,18 +532,22 @@
 /* The same, on the other axis: a horizontal trail changes ROW, a vertical one
    changes COLUMN. */
 @keyframes hop-y {
+
   0%,
   24.99% {
     transform: translateY(var(--hop1, 0px));
   }
+
   25%,
   49.99% {
     transform: translateY(var(--hop2, 0px));
   }
+
   50%,
   74.99% {
     transform: translateY(var(--hop3, 0px));
   }
+
   75%,
   100% {
     transform: translateY(var(--hop4, 0px));
@@ -527,36 +557,44 @@
 /* Three drift paths, shared between four orbs so no two move alike. Transform
    only - translate and scale - so none of this leaves the compositor. */
 @keyframes orb-drift-1 {
+
   0%,
   100% {
     transform: translate(0, 0) scale(1);
   }
+
   33% {
     transform: translate(40px, -50px) scale(1.08);
   }
+
   66% {
     transform: translate(-25px, 35px) scale(0.94);
   }
 }
 
 @keyframes orb-drift-2 {
+
   0%,
   100% {
     transform: translate(0, 0) scale(1);
   }
+
   40% {
     transform: translate(-50px, 45px) scale(1.1);
   }
+
   75% {
     transform: translate(30px, -30px) scale(0.95);
   }
 }
 
 @keyframes orb-drift-3 {
+
   0%,
   100% {
     transform: translate(0, 0) scale(1);
   }
+
   50% {
     transform: translate(35px, 40px) scale(1.12);
   }
@@ -571,12 +609,14 @@
     animation: none;
     opacity: 1;
   }
+
   /* The trails go entirely. With no track left underneath, a frozen train is just
      five orange specks sitting in the hero for no reason. */
   .hero-trail {
     display: none;
   }
 }
+
 /* Neither a translucent wash nor a tinted hairline carries meaning in a forced
    palette. */
 @media (forced-colors: active) {
@@ -595,6 +635,7 @@
     opacity: 0;
     transform: translateY(var(--rise-y, 20px));
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -641,12 +682,14 @@
   from {
     transform: translateY(var(--rise-y, 20px));
   }
+
   to {
     transform: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .rise,
   .rise-lift {
     animation: none;
@@ -693,10 +736,12 @@
   background: var(--color-page);
   animation: intro-lift 700ms cubic-bezier(0.76, 0, 0.24, 1) 2300ms both;
 }
+
 /* Nothing scrolls while it is up. Set from the component, removed with the panel. */
 html[data-intro] {
   overflow: hidden;
 }
+
 .intro-stage {
   display: flex;
   align-items: center;
@@ -719,6 +764,7 @@ html[data-intro] {
   flex: none;
   color: var(--color-head);
 }
+
 .intro-module {
   fill: currentColor;
   opacity: 0;
@@ -726,9 +772,11 @@ html[data-intro] {
      last of the thirteen. */
   animation: intro-in 520ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 56ms) both;
 }
+
 .intro-fracture {
   fill: var(--color-brand);
 }
+
 /* Each dot travels its own radial line in — --dx/--dy are set per module in the
    component, pointing straight out from the mark's centre. Lengths in an SVG transform
    are user units, and the throw is 46 against an artboard of 34, so every dot starts
@@ -738,11 +786,13 @@ html[data-intro] {
     opacity: 0;
     transform: translate(var(--dx), var(--dy));
   }
+
   /* Up to full opacity early in the travel, so each module reads as a dot sliding in
      rather than something fading up in place. */
   20% {
     opacity: 1;
   }
+
   to {
     opacity: 1;
     transform: translate(0, 0);
@@ -765,6 +815,7 @@ html[data-intro] {
   line-height: 1.05;
   animation: intro-word 560ms cubic-bezier(0.22, 1, 0.36, 1) 1400ms both;
 }
+
 /* The gap between mark and word lives here rather than on the row, so it opens with the
    text instead of holding a hole beside the mark for the first second and a half.
    0.455em is the header's gap-2.5 as a ratio: 10px against a 22px wordmark. No divider rule
@@ -773,10 +824,12 @@ html[data-intro] {
   display: block;
   padding-left: 0.455em;
 }
+
 @keyframes intro-word {
   from {
     width: 0;
   }
+
   /* The fallback is the real thing measured, not an estimate: "Zefract" plus its leading gap
      measured 3.43em of whatever the stage font size is — 151px at 44px and 96px at 28px when
      it was taken, so 247px and 151px at the 72px / 44px sizes set above. That the ratio holds
@@ -793,6 +846,7 @@ html[data-intro] {
   from {
     transform: translateY(0);
   }
+
   to {
     transform: translateY(-100%);
   }
@@ -806,6 +860,7 @@ html[data-intro] {
   .intro {
     display: none;
   }
+
   html[data-intro] {
     overflow: auto;
   }
@@ -816,6 +871,7 @@ html[data-intro] {
     opacity: 0;
     transform: translateX(-50%) scale(0.86);
   }
+
   to {
     opacity: 1;
     transform: translateX(-50%) scale(1);
@@ -848,6 +904,7 @@ html[data-intro] {
   /* Safari leaves a text-indent on appearance:none selects. */
   text-indent: 0;
 }
+
 /* The open list. `--color-surface` rather than the field's own `--color-page` fill: a
    popup floating over the page reads as a raised surface, and every other raised
    surface on this site is white. The control's own text may be greyed as a
@@ -856,6 +913,7 @@ html[data-intro] {
   background-color: var(--color-surface);
   color: var(--color-head);
 }
+
 /* The placeholder row, greyed to match the closed control and to read as not-a-choice.
    It is `disabled` in the markup, so this is also the state Chrome would otherwise
    grey to its own default. */
@@ -875,10 +933,12 @@ html[data-intro] {
    still submits — the control degrades in appearance, never in function. Nothing here
    changes the markup, so there is no JavaScript dependency either way. */
 @supports (appearance: base-select) {
+
   .native-select,
   .native-select::picker(select) {
     appearance: base-select;
   }
+
   /* CENTRES THE CLOSED CONTROL'S TEXT, and it has to be said explicitly. Opting into
      base-select makes the select an `inline-flex` box with `align-items: normal`, so its
      content stretches the full 48px and the label sits hard against the top edge — it
@@ -887,6 +947,7 @@ html[data-intro] {
   .native-select {
     align-items: center;
   }
+
   /* Chrome draws its own arrow once opted in, and this control already has one
      positioned in contact-form.tsx. Two would be one too many. */
   .native-select::picker-icon {
@@ -962,6 +1023,7 @@ html[data-intro] {
     line-height: 1.4;
     cursor: pointer;
   }
+
   /* EXACTLY ONE ROW IS EVER TINTED, and getting there took two corrections.
      First `:checked` was in this list, so the value you already had stayed lit while you
      moved the pointer — two highlights, and a highlight that marks two things marks
@@ -974,6 +1036,7 @@ html[data-intro] {
   .native-select option:hover {
     background: var(--color-page);
   }
+
   /* The keyboard's active row gets the tint AND a brand edge, so the two indicators are
      never mistaken for each other. They can coincide — park the pointer in the list and
      then arrow — and when they do, the outline says unambiguously which row Enter will
@@ -984,17 +1047,20 @@ html[data-intro] {
     outline: 2px solid var(--color-brand);
     outline-offset: -2px;
   }
+
   /* The current value, marked by weight rather than fill, so it is still identifiable
      before the pointer has moved anywhere. */
   .native-select option:checked {
     font-weight: 600;
   }
+
   /* After the label, not before it. */
   .native-select option::checkmark {
     order: 1;
     color: var(--color-brand-strong);
     font-weight: 700;
   }
+
   /* The placeholder row is disabled, so it is never a real choice — greyed, and no
      pointer cursor promising otherwise. */
   .native-select option[value=""] {
@@ -1032,13 +1098,16 @@ html[data-intro] {
     box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 220ms ease;
 }
+
 .card-pop:hover,
 .card-pop:focus-visible {
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--color-brand) 40%, transparent);
   box-shadow: 0 18px 36px -22px color-mix(in srgb, var(--color-brand) 42%, transparent);
 }
+
 @media (prefers-reduced-motion: reduce) {
+
   .card-pop:hover,
   .card-pop:focus-visible {
     transform: none;
@@ -1066,13 +1135,14 @@ html[data-intro] {
 .card-pop.tilt,
 .card-pop.tilt:hover,
 .card-pop.tilt:focus-visible {
-  transform: perspective(900px) translateY(var(--tilt-lift, 0px)) rotateX(var(--rx, 0deg))
-    rotateY(var(--ry, 0deg));
+  transform: perspective(900px) translateY(var(--tilt-lift, 0px)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
 }
+
 .card-pop.tilt:hover,
 .card-pop.tilt:focus-visible {
   --tilt-lift: -3px;
 }
+
 /* While the pointer is inside, the transform has to keep up with it, so its transition
    shrinks to just enough to smooth the per-frame sampling. On the way out the attribute
    goes away and the long ease returns, which is what makes the card settle flat rather
@@ -1083,15 +1153,18 @@ html[data-intro] {
     box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 220ms ease;
 }
+
 .card-pop.tilt[data-tilt='on'] {
   transition:
     transform 110ms linear,
     box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 220ms ease;
 }
+
 /* Motion off: flat, and no lift either. Needs the two-class selector to outrank the
    .card-pop.tilt rules above, which the plain .card-pop reduced-motion rule cannot do. */
 @media (prefers-reduced-motion: reduce) {
+
   .card-pop.tilt,
   .card-pop.tilt:hover,
   .card-pop.tilt:focus-visible {
@@ -1160,12 +1233,14 @@ html[data-intro] {
   position: relative;
   isolation: isolate;
 }
+
 [data-card] [data-card-link]::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
 }
+
 /* Position AND z-index, and neither alone is enough. The overlay is a positioned box, and
    positioned boxes paint above every unpositioned one in the same stacking context, so an
    ordinary list of tags sits underneath it and every click on a tag lands on the post.
@@ -1182,9 +1257,11 @@ html[data-intro] {
      in a real browser, not by looking at it: nothing about a dead strip is visible. */
   pointer-events: none;
 }
+
 [data-card] [data-card-above] :is(a, button) {
   pointer-events: auto;
 }
+
 @supports selector(:has(*)) {
   .card-pop[data-card]:has([data-card-link]:focus-visible) {
     transform: translateY(-3px);
@@ -1195,15 +1272,18 @@ html[data-intro] {
     outline: 3px solid var(--focus-ring, #081422);
     outline-offset: 2px;
   }
+
   [data-card] [data-card-link]:focus-visible {
     outline: none;
     box-shadow: none;
   }
+
   @media (prefers-reduced-motion: reduce) {
     .card-pop[data-card]:has([data-card-link]:focus-visible) {
       transform: none;
     }
   }
+
   @media (forced-colors: active) {
     .card-pop[data-card]:has([data-card-link]:focus-visible) {
       outline-color: Highlight;
@@ -1211,6 +1291,7 @@ html[data-intro] {
     }
   }
 }
+
 /* ---- Direction-aware sweep, for the pillar cards -----------------------------
    The panel enters from the edge the pointer crossed and leaves toward the edge it
    exits, driven from components/motion/sweep-card.tsx. Everything positional is set by
@@ -1235,6 +1316,7 @@ html[data-intro] {
 .sweep {
   overflow: hidden;
 }
+
 /* The panel sits over the card at full size and is revealed by a clip circle grown from
    the pointer's own coordinates — see sweep.tsx. Nothing here moves, which is the point:
    the copy of the content inside is always exactly where the real content is, so at any
@@ -1262,19 +1344,19 @@ html[data-intro] {
   pointer-events: none;
   opacity: 0;
   transition: opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
-  background: linear-gradient(
-    148deg,
-    color-mix(in srgb, var(--color-brand) 9%, transparent) 0%,
-    color-mix(in srgb, var(--color-brand) 4%, transparent) 46%,
-    color-mix(in srgb, var(--color-brand) 1%, transparent) 78%,
-    transparent 100%
-  );
+  background: linear-gradient(148deg,
+      color-mix(in srgb, var(--color-brand) 9%, transparent) 0%,
+      color-mix(in srgb, var(--color-brand) 4%, transparent) 46%,
+      color-mix(in srgb, var(--color-brand) 1%, transparent) 78%,
+      transparent 100%);
 }
+
 :is(a, button).card-pop:not(.sweep):hover::before,
 :is(a, button).card-pop:not(.sweep):focus-visible::before,
 .card-pop[data-card]:hover::before {
   opacity: 1;
 }
+
 /* Kept apart from the list above rather than folded into it: a selector list is dropped
    whole when any one selector in it is unsupported, so a browser without :has would lose
    the hover wash on every anchor card on the site along with this one line. */
@@ -1319,12 +1401,14 @@ form.card-pop:focus-within {
     border-color 200ms ease,
     color 200ms ease;
 }
+
 .chip-pop:hover {
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--color-brand) 55%, transparent);
   color: var(--color-brand-strong);
   box-shadow: 0 12px 24px -14px color-mix(in srgb, var(--color-brand) 50%, transparent);
 }
+
 /* The lift is decoration; the colour change alone still confirms the hover. */
 @media (prefers-reduced-motion: reduce) {
   .chip-pop:hover {
@@ -1353,13 +1437,16 @@ form.card-pop:focus-within {
 .tel-link {
   display: none;
 }
+
 .tel-text {
   display: inline;
 }
+
 @media (hover: none) and (pointer: coarse) {
   .tel-link {
     display: inline-flex;
   }
+
   .tel-text {
     display: none;
   }
@@ -1395,14 +1482,17 @@ form.card-pop:focus-within {
     max-width var(--dur-header) var(--ease-header),
     box-shadow var(--dur-header) var(--ease-header);
 }
+
 [data-header] [data-header-bar] {
   transition: padding var(--dur-header) var(--ease-header);
 }
+
 [data-header] [data-header-mark] {
   transition:
     height var(--dur-header) var(--ease-header),
     width var(--dur-header) var(--ease-header);
 }
+
 [data-header] [data-header-wordmark] {
   transition: font-size var(--dur-header) var(--ease-header);
 }
@@ -1447,14 +1537,13 @@ form.card-pop:focus-within {
      only to 62px, and measuring the pixels showed body text still legible at ~85%
      coverage in the side gutters between 71px and 84px. The fade then runs the
      remaining 40px so the band has no hard edge. */
-  background: linear-gradient(
-    to bottom,
-    var(--color-page) 0%,
-    var(--color-page) 68%,
-    color-mix(in srgb, var(--color-page) 58%, transparent) 84%,
-    transparent 100%
-  );
+  background: linear-gradient(to bottom,
+      var(--color-page) 0%,
+      var(--color-page) 68%,
+      color-mix(in srgb, var(--color-page) 58%, transparent) 84%,
+      transparent 100%);
 }
+
 /* Off at rest so the hero's grid still reaches the top edge; on as soon as anything
    scrolls underneath. Adjacent-sibling selector, so the scrim must stay immediately
    after the header in the DOM.
@@ -1463,10 +1552,11 @@ form.card-pop:focus-within {
    the return to rest fades (that 200ms lives on the base rule). A fade-IN loses the
    race with a fast swipe — captured 80ms into a scroll, the scrim was still part
    transparent and the text underneath was legible, which is the whole bug. */
-[data-header][data-past='true'] + [data-header-scrim] {
+[data-header][data-past='true']+[data-header-scrim] {
   opacity: 1;
   transition: none;
 }
+
 @media (prefers-reduced-motion: reduce) {
   [data-header-scrim] {
     transition: none;
@@ -1477,10 +1567,12 @@ form.card-pop:focus-within {
   max-width: 460px;
   box-shadow: 0 12px 28px -18px rgba(8, 20, 34, 0.34);
 }
+
 [data-header][data-scrolled='true'] [data-header-bar] {
   padding-top: 0.3rem;
   padding-bottom: 0.3rem;
 }
+
 [data-header][data-scrolled='true'] [data-header-nav] {
   max-width: 0;
   opacity: 0;
@@ -1491,9 +1583,11 @@ form.card-pop:focus-within {
     opacity 220ms var(--ease-header),
     visibility 0s 220ms;
 }
+
 [data-header][data-scrolled='true'] [data-header-wordmark] {
   font-size: 19px;
 }
+
 [data-header][data-scrolled='true'] [data-header-mark] {
   height: 1.5rem;
   width: 1.5rem;
@@ -1529,15 +1623,17 @@ form.card-pop:focus-within {
   transition: opacity 220ms ease;
   will-change: transform;
 }
+
 .cursor-ring[data-visible='true'] {
   opacity: 1;
 }
 
-.cursor-ring > span {
+.cursor-ring>span {
   display: block;
   width: 26px;
   height: 26px;
-  margin: -13px 0 0 -13px; /* centres the ring on the pointer */
+  margin: -13px 0 0 -13px;
+  /* centres the ring on the pointer */
   border: 1.5px solid color-mix(in srgb, var(--color-brand) 50%, transparent);
   border-radius: 9999px;
   background: transparent;
@@ -1552,7 +1648,7 @@ form.card-pop:focus-within {
     border-color 340ms ease;
 }
 
-.cursor-ring[data-hover='true'] > span {
+.cursor-ring[data-hover='true']>span {
   transform: scale(1.75);
   border-radius: 7px;
   border-color: color-mix(in srgb, var(--color-brand) 80%, transparent);
@@ -1560,19 +1656,23 @@ form.card-pop:focus-within {
 }
 
 /* Press feedback: the ring tightens toward the click. */
-.cursor-ring[data-down='true'] > span {
+.cursor-ring[data-down='true']>span {
   transform: scale(0.75);
 }
-.cursor-ring[data-hover='true'][data-down='true'] > span {
+
+.cursor-ring[data-hover='true'][data-down='true']>span {
   transform: scale(1.45);
 }
 
 /* No cursor to trail, or the user asked for less motion. */
-@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+@media (hover: none),
+(pointer: coarse),
+(prefers-reduced-motion: reduce) {
   .cursor-ring {
     display: none;
   }
 }
+
 /* A translucent brand ring has no meaning in a forced palette. */
 @media (forced-colors: active) {
   .cursor-ring {
@@ -1684,6 +1784,7 @@ form.card-pop:focus-within {
     border-color 200ms ease,
     visibility 0s 260ms;
 }
+
 [data-to-top][data-show='true'] {
   --to-top-y: 0px;
   --to-top-scale: 1;
@@ -1697,6 +1798,7 @@ form.card-pop:focus-within {
     border-color 200ms ease,
     visibility 0s;
 }
+
 /* The same 2px lift every pill gets on hover, expressed as an offset rather than its own
    transform for the reason above. The rim brightens and the shadow deepens with it, which
    between them are the whole hover — see the note on gradients. */
@@ -1708,6 +1810,7 @@ form.card-pop:focus-within {
     0 0 0 5px color-mix(in srgb, var(--color-brand) 20%, transparent),
     inset 0 1px 0 color-mix(in srgb, #ffffff 40%, transparent);
 }
+
 /* Motion off: it still appears and disappears, it just does not travel or scale to get
    there. The global rule at the end of this file collapses the durations; zeroing the
    offset here is what stops it being parked mid-slide while they are collapsed. */
@@ -1716,10 +1819,12 @@ form.card-pop:focus-within {
     --to-top-y: 0px;
     --to-top-scale: 1;
   }
+
   [data-to-top][data-show='true']:hover {
     --to-top-y: 0px;
   }
 }
+
 /* A translucent tint over a blurred backdrop carries no meaning in a forced palette, and
    a blur left running there just softens the system colours the user asked for. The
    control keeps its shape and its system fill; the glass is what goes. */
@@ -1750,10 +1855,12 @@ form.card-pop:focus-within {
     transform: scale(1);
     opacity: 0.4;
   }
+
   65% {
     transform: scale(3);
     opacity: 0;
   }
+
   100% {
     transform: scale(3);
     opacity: 0;
@@ -1763,6 +1870,7 @@ form.card-pop:focus-within {
 .dot-pulse {
   position: relative;
 }
+
 .dot-pulse::after {
   content: '';
   position: absolute;
@@ -1802,31 +1910,38 @@ form.card-pop:focus-within {
   --log-gap: 0.5rem;
   --log-dur: 9s;
 }
+
 .log-window {
   overflow: hidden;
 }
+
 .log-track {
   position: relative;
   animation: log-scroll var(--log-dur) linear infinite;
 }
-.log-copy + .log-copy {
+
+.log-copy+.log-copy {
   position: absolute;
   top: calc(100% + var(--log-gap));
   left: 0;
   right: 0;
 }
+
 .log:hover .log-track,
 .log:focus-within .log-track {
   animation-play-state: paused;
 }
+
 @keyframes log-scroll {
   from {
     transform: translateY(0);
   }
+
   to {
     transform: translateY(calc(-100% - var(--log-gap)));
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
   .log-track {
     animation: none;
@@ -1848,6 +1963,7 @@ form.card-pop:focus-within {
 .agents {
   --agents-dur: 5.6s;
 }
+
 .agents-tick {
   /* Resting state is a hollow grey dot: the check glyph is transparent until its turn, because
      a visible ✓ on the resting fill would say the step is already done. */
@@ -1856,6 +1972,7 @@ form.card-pop:focus-within {
   animation: agents-tick var(--agents-dur) steps(1, end) infinite;
   animation-delay: calc(var(--agents-dur) * var(--i) / var(--agents-count));
 }
+
 .agents-fill {
   /* scaleX, not width: a transform composites, and this runs on four rows at once behind two
      other looping tiles in the same section. transform-origin so it grows from the left. */
@@ -1864,6 +1981,7 @@ form.card-pop:focus-within {
   animation: agents-fill var(--agents-dur) linear infinite;
   animation-delay: calc(var(--agents-dur) * var(--i) / var(--agents-count));
 }
+
 /* Pause on hover, the same courtesy the log and the bars give. */
 .agents:hover .agents-tick,
 .agents:hover .agents-fill,
@@ -1871,6 +1989,7 @@ form.card-pop:focus-within {
 .agents:focus-within .agents-fill {
   animation-play-state: paused;
 }
+
 /* ONE ROW ACTIVE AT A TIME. The active window is 4%-24% of the cycle and each row is delayed a
    further quarter, so row 0 runs at 4-24%, row 1 at 29-49%, row 2 at 54-74% and row 3 at
    79-99%. Never two together.
@@ -1884,48 +2003,58 @@ form.card-pop:focus-within {
    the same reasoning as the orange bento tile's `text-ink`. `steps(1, end)` switches both
    colours outright rather than fading through a muddy half-orange. */
 @keyframes agents-tick {
+
   0%,
   3% {
     background: var(--color-line);
     color: transparent;
   }
+
   4%,
   24% {
     background: var(--color-brand);
     color: var(--color-ink);
   }
+
   25%,
   100% {
     background: var(--color-line);
     color: transparent;
   }
 }
+
 @keyframes agents-fill {
   0% {
     transform: scaleX(0);
   }
+
   /* Fills across the first fifth of its turn, holds, then snaps back — draining it would read
      as work being undone. */
   8%,
   24% {
     transform: scaleX(1);
   }
+
   25%,
   100% {
     transform: scaleX(0);
   }
 }
+
 /* Animation off: the first step reads as done and the rest as pending, which is a legible still
    frame of the same idea rather than four empty rows. */
 @media (prefers-reduced-motion: reduce) {
+
   .agents-tick,
   .agents-fill {
     animation: none;
   }
+
   .agents-row:first-child .agents-tick {
     background: var(--color-brand);
     color: var(--color-ink);
   }
+
   .agents-row:first-child .agents-fill {
     transform: scaleX(1);
   }
@@ -1975,6 +2104,7 @@ form.card-pop:focus-within {
   .marquee-track {
     animation: none;
   }
+
   *,
   *::before,
   *::after {
@@ -2011,9 +2141,11 @@ form.card-pop:focus-within {
   font-size: 16.5px;
   line-height: 1.7;
 }
-.blog-prose > * + * {
+
+.blog-prose>*+* {
   margin-top: 1.1em;
 }
+
 .blog-prose h2 {
   margin-top: 1.9em;
   color: var(--color-head);
@@ -2022,6 +2154,7 @@ form.card-pop:focus-within {
   letter-spacing: -0.025em;
   line-height: 1.2;
 }
+
 .blog-prose h3 {
   margin-top: 1.6em;
   color: var(--color-head);
@@ -2030,6 +2163,7 @@ form.card-pop:focus-within {
   letter-spacing: -0.02em;
   line-height: 1.3;
 }
+
 /* ---- h4, h5, h6 -----------------------------------------------------------
    THE SCALE HAS TO KEEP DESCENDING PAST BODY SIZE, which is the whole problem
    with the lower levels. Body copy here is 16.5px, so an h4 at 17.5 is barely
@@ -2048,6 +2182,7 @@ form.card-pop:focus-within {
   letter-spacing: -0.015em;
   line-height: 1.35;
 }
+
 .blog-prose h5 {
   margin-top: 1.4em;
   color: var(--color-head);
@@ -2056,6 +2191,7 @@ form.card-pop:focus-within {
   letter-spacing: -0.005em;
   line-height: 1.4;
 }
+
 /* MONO UPPERCASE, NOT A FOURTH BOLD SANS LINE, and that is a legibility call
    rather than a flourish. At the size an h6 has to sit — below h5's 15.5px and
    therefore well below the 16.5px body — a bold sans heading is indistinguishable
@@ -2073,14 +2209,17 @@ form.card-pop:focus-within {
   line-height: 1.5;
   text-transform: uppercase;
 }
+
 /* The first block hangs on the container's own spacing, not its own margin. */
-.blog-prose > :first-child {
+.blog-prose> :first-child {
   margin-top: 0;
 }
+
 .blog-prose strong {
   color: var(--color-head);
   font-weight: 700;
 }
+
 /* brand-strong, not brand: body-size text needs the 4.66:1 variant — see the
    token note at the top of this file. The underline is what keeps a link
    distinguishable by more than colour (SC 1.4.1). */
@@ -2090,16 +2229,18 @@ form.card-pop:focus-within {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+
 .blog-prose a:hover {
   color: var(--color-brand);
 }
+
 /* Two links side by side in one paragraph must not touch.
    Copying a call-to-action pair off a marketing page produces exactly that —
    `<a>Start a project</a><a>Explore services</a>` with no text between them —
    and it rendered as the single run-on word "Start a projectExplore services".
    A margin on the second and later of a run fixes the pasted case without
    putting a gap after a link that sits in ordinary prose. */
-.blog-prose a + a {
+.blog-prose a+a {
   margin-left: 0.75em;
 }
 
@@ -2133,11 +2274,13 @@ form.card-pop:focus-within {
     transform 0.18s ease,
     background-color 0.18s ease;
 }
+
 .blog-prose a[data-button]:hover {
   background: var(--color-brand-strong);
   color: #fff;
   transform: translateY(-1px);
 }
+
 /* The secondary of a pair: same pill, no fill.
    AFTER the block above on purpose — `a[data-button]` matches on the attribute
    being PRESENT, so it matches the outline variant too, and only source order
@@ -2150,6 +2293,7 @@ form.card-pop:focus-within {
   padding: 12px 25px;
   color: var(--color-head);
 }
+
 .blog-prose a[data-button='outline']:hover {
   border-color: var(--color-brand);
   background: transparent;
@@ -2158,36 +2302,44 @@ form.card-pop:focus-within {
 
 /* A pill is a block-ish object, so a pair of them needs real space between and
    around, not the inline 0.75em that suits two text links. */
-.blog-prose a[data-button] + a[data-button] {
+.blog-prose a[data-button]+a[data-button] {
   margin-left: 10px;
 }
+
 .blog-prose p:has(> a[data-button]) {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 1.6em;
 }
+
 /* The gap owns the spacing once the paragraph is a flex row; the inline margins
    above would double it. */
 .blog-prose p:has(> a[data-button]) a {
   margin-left: 0;
 }
+
 .blog-prose ul,
 .blog-prose ol {
   padding-left: 1.5em;
 }
+
 .blog-prose ul {
   list-style: disc;
 }
+
 .blog-prose ol {
   list-style: decimal;
 }
+
 .blog-prose li {
   margin-top: 0.45em;
 }
+
 .blog-prose li::marker {
   color: var(--color-brand);
 }
+
 .blog-prose blockquote {
   margin-top: 1.6em;
   margin-bottom: 1.6em;
@@ -2197,6 +2349,7 @@ form.card-pop:focus-within {
   font-size: 18px;
   font-weight: 500;
 }
+
 /* Inline code: a white chip on the page background, mono, slightly under body
    size so it sits in the line rather than on it. */
 .blog-prose code {
@@ -2208,6 +2361,7 @@ form.card-pop:focus-within {
   font-size: 0.86em;
   color: var(--color-head);
 }
+
 /* Code blocks go on ink — the palette the deploy-log tile already established
    for terminal-ish content. The inline-code chrome is undone inside. */
 .blog-prose pre {
@@ -2218,6 +2372,7 @@ form.card-pop:focus-within {
   padding: 20px 24px;
   overflow-x: auto;
 }
+
 .blog-prose pre code {
   border: 0;
   border-radius: 0;
@@ -2227,6 +2382,7 @@ form.card-pop:focus-within {
   line-height: 1.65;
   color: #c6d4e4;
 }
+
 .blog-prose img {
   margin-top: 2em;
   margin-bottom: 2em;
@@ -2234,6 +2390,7 @@ form.card-pop:focus-within {
   max-width: 100%;
   height: auto;
 }
+
 .blog-prose hr {
   margin-top: 2.5em;
   margin-bottom: 2.5em;
@@ -2263,17 +2420,20 @@ form.card-pop:focus-within {
   padding-inline: 24px;
   overflow-x: auto;
 }
+
 @media (min-width: 640px) {
   .blog-table-scroll {
     margin-inline: 0;
     padding-inline: 0;
   }
 }
+
 /* The wrapper owns the vertical rhythm, so the table inside must not add its own
    on top of it — `.blog-prose > * + *` has already spaced the wrapper. */
 .blog-prose .blog-table-scroll table {
   margin: 0;
 }
+
 .blog-prose table {
   width: 100%;
   /* Wide enough that the columns do not collapse into single words, which is
@@ -2284,9 +2444,11 @@ form.card-pop:focus-within {
   line-height: 1.55;
   text-align: left;
 }
+
 .blog-prose thead tr {
   border-bottom: 1px solid var(--color-line);
 }
+
 .blog-prose th {
   padding: 0 1rem 0.75rem 0;
   color: var(--color-mut-2);
@@ -2297,6 +2459,7 @@ form.card-pop:focus-within {
   text-transform: uppercase;
   vertical-align: bottom;
 }
+
 /* A row header — the first cell of a body row, where the writer has marked one.
    It is the row's subject, so it carries the weight the column headers do not. */
 .blog-prose tbody th {
@@ -2309,16 +2472,20 @@ form.card-pop:focus-within {
   text-transform: none;
   vertical-align: top;
 }
+
 .blog-prose tbody tr {
   border-bottom: 1px solid var(--color-line);
 }
+
 .blog-prose tbody tr:last-child {
   border-bottom: 0;
 }
+
 .blog-prose td {
   padding: 1rem 1.5rem 1rem 0;
   vertical-align: top;
 }
+
 .blog-prose th:last-child,
 .blog-prose td:last-child {
   padding-right: 0;
@@ -2340,6 +2507,7 @@ form.card-pop:focus-within {
   font-size: 16px;
   caret-color: var(--color-brand);
 }
+
 /**
  * NO FOCUS RING ON THE WRITING SURFACE, and `outline: none` alone does not
  * achieve it.
@@ -2361,11 +2529,13 @@ form.card-pop:focus-within {
   outline: none;
   box-shadow: none;
 }
+
 @media (min-width: 768px) {
   .tiptap-editing {
     padding: 24px 22px 32px;
   }
 }
+
 /* Headings inside the editor are tightened from the published scale: at 26px
    an h2 dominates a 900px working column, where on the finished page it has a
    full-width article around it to balance against. */
@@ -2373,10 +2543,12 @@ form.card-pop:focus-within {
   font-size: 22px;
   margin-top: 1.5em;
 }
+
 .tiptap-editing h3 {
   font-size: 18px;
   margin-top: 1.35em;
 }
+
 /* h4 and h5 come down with them, so the gaps between levels stay proportional
    in the editor. Without this, the published h4 at 17.5px would sit between the
    editor's tightened h3 (18px) and h2 (22px) by half a pixel, and a writer
@@ -2388,6 +2560,7 @@ form.card-pop:focus-within {
   font-size: 16px;
   margin-top: 1.3em;
 }
+
 .tiptap-editing h5 {
   font-size: 14.5px;
   margin-top: 1.25em;
@@ -2426,12 +2599,10 @@ form.card-pop:focus-within {
 body:has([data-admin-surface]) [data-header-scrim] {
   display: block;
   height: 128px;
-  background: linear-gradient(
-    to bottom,
-    var(--color-page) 0%,
-    var(--color-page) 81%,
-    transparent 100%
-  );
+  background: linear-gradient(to bottom,
+      var(--color-page) 0%,
+      var(--color-page) 81%,
+      transparent 100%);
 }
 
 /* The trailing cursor ring is marketing-page garnish. Over a writing surface it
@@ -2442,6 +2613,7 @@ body:has([data-admin-surface]) [data-header-scrim] {
 body:has([data-admin-surface]) .cursor-ring {
   display: none;
 }
+
 /* TipTap's placeholder convention: the empty first paragraph carries the text
    in a data attribute, drawn here so it never enters the document. */
 .tiptap-editing p.is-editor-empty:first-child::before {
@@ -2451,6 +2623,7 @@ body:has([data-admin-surface]) .cursor-ring {
   pointer-events: none;
   color: var(--color-mut-2);
 }
+
 /* A selected image gets the brand ring, so "about to be deleted" is visible. */
 .tiptap-editing img.ProseMirror-selectednode {
   outline: 3px solid var(--color-brand);
@@ -2475,21 +2648,25 @@ body:has([data-admin-surface]) .cursor-ring {
   margin: 1.5em 0;
   overflow-x: auto;
 }
+
 .tiptap-editing table {
   min-width: 0;
   table-layout: fixed;
 }
+
 .tiptap-editing th,
 .tiptap-editing td {
   position: relative;
   border: 1px solid var(--color-line);
   padding: 0.6rem 0.75rem;
 }
+
 /* The header row gets the page background, so the row that will become <th> on
    the published page is identifiable while it is being filled in. */
 .tiptap-editing th {
   background: var(--color-page);
 }
+
 /* The active cell. `selectedCell` is ProseMirror's own class, applied to every
    cell in the current selection — so this marks a dragged range of cells as well
    as the one the caret sits in, which is what the row and column controls in the
@@ -2525,6 +2702,7 @@ body:has([data-admin-surface]) .cursor-ring {
 [data-consent-banner] {
   animation: consent-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
 [data-consent-banner][data-leaving='true'] {
   /* Faster and on an ease-in, because leaving is an acknowledgement rather than an
      arrival: the visitor has just clicked and wants the card gone, not eased out. */
@@ -2537,6 +2715,7 @@ body:has([data-admin-surface]) .cursor-ring {
      that being invisible is the whole of it. */
   pointer-events: none;
 }
+
 @keyframes consent-in {
   from {
     opacity: 0;
@@ -2545,16 +2724,19 @@ body:has([data-admin-surface]) .cursor-ring {
        lower is visibly a zoom. */
     transform: translateY(16px) scale(0.985);
   }
+
   to {
     opacity: 1;
     transform: none;
   }
 }
+
 @keyframes consent-out {
   from {
     opacity: 1;
     transform: none;
   }
+
   to {
     opacity: 0;
     transform: translateY(10px) scale(0.985);
@@ -2592,6 +2774,7 @@ html[data-consent-open] [data-whatsapp] {
   visibility: hidden;
   pointer-events: none;
 }
+
 /* ---- HTML posts ----------------------------------------------------------------
    A post saved in the HTML format is a whole pasted document, rendered by <HtmlPost>
    inside the site: real header above, real footer below, same gutter as every other
@@ -2616,37 +2799,113 @@ html[data-consent-open] [data-whatsapp] {
    UNLAYERED, so it beats preflight rather than losing to it — the trap [data-to-top]
    documents further up. Preflight lives in a layer, and an unlayered rule beats every
    layered one regardless of specificity. */
-[data-html-post] h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
-[data-html-post] h2 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
-[data-html-post] h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0; }
-[data-html-post] h4 { font-size: 1em; font-weight: bold; margin: 1.33em 0; }
-[data-html-post] h5 { font-size: 0.83em; font-weight: bold; margin: 1.67em 0; }
-[data-html-post] h6 { font-size: 0.67em; font-weight: bold; margin: 2.33em 0; }
+[data-html-post] h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+}
+
+[data-html-post] h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.83em 0;
+}
+
+[data-html-post] h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 1em 0;
+}
+
+[data-html-post] h4 {
+  font-size: 1em;
+  font-weight: bold;
+  margin: 1.33em 0;
+}
+
+[data-html-post] h5 {
+  font-size: 0.83em;
+  font-weight: bold;
+  margin: 1.67em 0;
+}
+
+[data-html-post] h6 {
+  font-size: 0.67em;
+  font-weight: bold;
+  margin: 2.33em 0;
+}
+
 [data-html-post] p,
 [data-html-post] blockquote,
 [data-html-post] figure,
 [data-html-post] dl,
-[data-html-post] pre { margin: 1em 0; }
+[data-html-post] pre {
+  margin: 1em 0;
+}
+
 [data-html-post] blockquote,
-[data-html-post] figure { margin-inline: 40px; }
+[data-html-post] figure {
+  margin-inline: 40px;
+}
+
 [data-html-post] ul,
-[data-html-post] ol { margin: 1em 0; padding-inline-start: 40px; }
-[data-html-post] ul { list-style: disc outside; }
-[data-html-post] ol { list-style: decimal outside; }
-[data-html-post] li { display: list-item; }
-[data-html-post] dd { margin-inline-start: 40px; }
-[data-html-post] hr { margin: 0.5em auto; border-style: inset; border-width: 1px; }
+[data-html-post] ol {
+  margin: 1em 0;
+  padding-inline-start: 40px;
+}
+
+[data-html-post] ul {
+  list-style: disc outside;
+}
+
+[data-html-post] ol {
+  list-style: decimal outside;
+}
+
+[data-html-post] li {
+  display: list-item;
+}
+
+[data-html-post] dd {
+  margin-inline-start: 40px;
+}
+
+[data-html-post] hr {
+  margin: 0.5em auto;
+  border-style: inset;
+  border-width: 1px;
+}
+
 /* Preflight makes every <img> a block. That is right for an article and wrong for a page
    laying out its own inline media, so it goes back to the default and keeps only the
    overflow guard, which no design wants to lose. */
 [data-html-post] img,
 [data-html-post] svg,
-[data-html-post] video { display: inline-block; vertical-align: middle; max-width: 100%; }
+[data-html-post] video {
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+}
+
 /* A page that draws its own table expects the UA borders to exist before it restyles
    them. Preflight collapses and strips them, which turns an unstyled table into a wall
    of unaligned text. */
-[data-html-post] table { border-collapse: separate; border-spacing: 2px; }
-[data-html-post] th { font-weight: bold; text-align: center; }
+[data-html-post] table {
+  border-collapse: separate;
+  border-spacing: 2px;
+}
+
+[data-html-post] th {
+  font-weight: bold;
+  text-align: center;
+}
+
 [data-html-post] b,
-[data-html-post] strong { font-weight: bolder; }
-[data-html-post] a { color: -webkit-link; text-decoration: underline; }
+[data-html-post] strong {
+  font-weight: bolder;
+}
+
+[data-html-post] a {
+  color: -webkit-link;
+  text-decoration: underline;
+}

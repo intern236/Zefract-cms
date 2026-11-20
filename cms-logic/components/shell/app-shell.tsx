@@ -173,8 +173,10 @@ function Sidebar({ user, workspace, workspaces, nav, agencyName, canCreatePost, 
               <Link
                 key={item.key}
                 href={item.href}
-                /* The whole page, data included, fetched as soon as the sidebar shows: the click is instant. */
-                prefetch
+                /* Default prefetch: in production only the shell up to the nearest loading.tsx is
+                +                   fetched ahead, so a click shows the skeleton at once without rendering every
+                +                   linked page's data in advance. */
+
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'relative flex h-9 items-center gap-3 rounded-xl px-3 text-[13.5px] font-medium transition-colors',
@@ -264,7 +266,7 @@ function WorkspaceSwitcher({
         {user.isAgency && (
           <>
             <MenuItem asChild>
-              <Link href="/cms/agency" prefetch>
+              <Link href="/cms/agency">
                 <Buildings />
                 All clients
               </Link>
@@ -289,7 +291,7 @@ function WorkspaceSwitcher({
           <>
             <MenuSeparator />
             <MenuItem asChild>
-              <Link href="/cms/agency/new" prefetch>
+              <Link href="/cms/agency/new" >
                 <Plus />
                 Add a client
               </Link>
@@ -325,7 +327,7 @@ function UserMenu({ user, workspace }: Pick<ShellProps, 'user' | 'workspace'>) {
       </MenuTrigger>
       <MenuContent side="top" align="start" className="w-[240px]">
         <MenuItem asChild>
-          <Link href={workspace ? `/cms/account?from=${workspace.slug}` : '/cms/account'} prefetch>
+          <Link href={workspace ? `/cms/account?from=${workspace.slug}` : '/cms/account'} >
             <UserCircle />
             Your account
           </Link>
